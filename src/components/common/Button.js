@@ -6,13 +6,13 @@ export default function Button({
                                    disabled = false,
                                    type = 'button'
                                }) {
-    const baseStyle = "py-2 px-6 rounded-lg font-medium transition-colors";
+    const baseStyle = "py-3 px-6 rounded-lg font-medium transition-all duration-200";
 
     const variants = {
-        primary: "bg-[#4285F4] text-white hover:bg-[#3367d6]",
+        primary: "bg-[#4285F4] text-white hover:bg-[#3367d6] shadow-sm hover:shadow",
         secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300",
-        outline: "border border-[#4285F4] text-[#4285F4] hover:bg-blue-50",
-        selected: "bg-[#4285F4] text-white",
+        outline: "border-2 border-[#4285F4] text-[#4285F4] hover:bg-blue-50",
+        selected: "bg-[#4285F4] text-white shadow-md",
         unselected: "bg-gray-200 text-gray-600"
     };
 

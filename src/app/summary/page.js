@@ -23,43 +23,43 @@ export default function Summary() {
 
             <main className="flex-1 p-4 md:p-8 flex flex-col items-center max-w-3xl mx-auto">
                 {/* Newscuss 로고 */}
-                <h1 className="text-center text-5xl font-bold mb-8 bg-gradient-to-r from-[#4285F4] to-[#70A1FF] text-transparent bg-clip-text">
-                    Newscuss
+                <h1 className="text-center text-5xl font-bold mb-8 text-[#4285F4]">
+                    <span className="text-[#0052CC]">N</span>ews<span className="text-[#0052CC]">c</span>uss
                 </h1>
 
-                <h2 className="text-2xl font-bold mb-6 text-center">오늘의 토론 요약</h2>
-
                 <Card className="w-full mb-8">
-                    <div className="bg-gray-100 rounded-xl p-6">
+                    <h2 className="text-2xl font-bold mb-6 text-center">오늘의 토론 요약</h2>
+
+                    <div className="bg-gray-100 rounded-xl p-6 mb-6">
                         <p className="text-gray-700 whitespace-pre-line">
                             {summary}
                         </p>
                     </div>
-                </Card>
 
-                <div className="w-full mb-6">
-                    <h3 className="text-center text-lg mb-4">
-                        나와 다른 입장, 혹은 새로운 주제로 토론을 원하신다면?
-                    </h3>
+                    <div className="border-t border-gray-200 pt-6 mt-2">
+                        <h3 className="text-center text-lg mb-6">
+                            나와 다른 입장, 혹은 새로운 주제로 토론을 원하신다면?
+                        </h3>
 
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Button
-                            variant="primary"
-                            onClick={() => router.push('/topic-selection')}
-                            className="flex-1 sm:flex-initial"
-                        >
-                            입장 바꾸기
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <Button
+                                variant="primary"
+                                onClick={() => router.push('/topic-selection')}
+                                className="flex-1 sm:flex-initial"
+                            >
+                                입장 바꾸기
+                            </Button>
 
-                        <Button
-                            variant="primary"
-                            onClick={() => router.push('/')}
-                            className="flex-1 sm:flex-initial"
-                        >
-                            처음으로
-                        </Button>
+                            <Button
+                                variant="primary"
+                                onClick={() => router.push('/')}
+                                className="flex-1 sm:flex-initial"
+                            >
+                                처음으로
+                            </Button>
+                        </div>
                     </div>
-                </div>
+                </Card>
             </main>
         </div>
     );

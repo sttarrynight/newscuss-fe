@@ -5,18 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="init newscuss-fe">
-      <change afterPath="$PROJECT_DIR$/src/app/discussion/page.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/app/keyword-summary/page.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/app/summary/page.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/app/topic-selection/page.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/common/Button.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/common/Card.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/common/Header.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/discussion/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/discussion/page.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/globals.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/keyword-summary/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/keyword-summary/page.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/layout.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/layout.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/page.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/summary/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/summary/page.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/topic-selection/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/topic-selection/page.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/common/Button.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/common/Button.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/common/Card.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/common/Card.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/common/Header.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/common/Header.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,6 +37,9 @@
     "accountId": "bbc28672-f413-4652-9fd9-52542bf93594"
   }
 }]]></component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
   <component name="ProjectColorInfo"><![CDATA[{
   "associatedIndex": 2
 }]]></component>
@@ -93,8 +95,17 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1744700126921</updated>
-      <workItem from="1744700127906" duration="1703000" />
+      <workItem from="1744700127906" duration="4973000" />
     </task>
+    <task id="LOCAL-00001" summary="init newscuss-fe">
+      <option name="closed" value="true" />
+      <created>1744703024111</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1744703024111</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

@@ -7,20 +7,11 @@
   --primary-dark: #3367d6;
   --light-gray: #F0F0F0;
   --card-bg: #FFFFFF;
+  --card-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  --header-bg: #FFFFFF;
   --border-radius: 0.5rem;
   --border-radius-lg: 1rem;
   --border-radius-xl: 1.5rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --primary: #5D93FC;
-    --primary-dark: #3367d6;
-    --light-gray: #1a1a1a;
-    --card-bg: #111111;
-  }
 }
 
 body {
@@ -32,8 +23,11 @@ body {
 .card {
   background-color: var(--card-bg);
   border-radius: var(--border-radius-lg);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--card-shadow);
   padding: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .btn-primary {
@@ -74,4 +68,35 @@ body {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.logo-text {
+  color: #4285F4;
+  font-weight: bold;
+}
+
+.logo-text .highlight-char {
+  color: #0052CC;
+}
+
+.message-time {
+  font-size: 0.7rem;
+  color: #8c8c8c;
+  margin-top: 0.25rem;
+}
+
+/* Improved card styles */
+.content-card {
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--card-shadow);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  transition: transform 0.2s ease-in-out;
+}
+
+.content-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
 }

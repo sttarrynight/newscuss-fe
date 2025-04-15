@@ -21,12 +21,12 @@ export default function KeywordSummary() {
         <div className="min-h-screen bg-[#E8F0FE] flex flex-col">
             <Header showNav={true} backUrl="/" nextUrl="/topic-selection" />
 
-            <main className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full">
+            <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* 키워드 섹션 */}
                     <div className="md:col-span-1">
                         <Card title="핵심 Keyword!!" className="h-full">
-                            <div className="bg-gray-100 rounded-xl p-4">
+                            <div className="bg-gray-100 rounded-xl p-6">
                                 {keywordData.keywords.map((keyword, index) => (
                                     <div key={index} className="text-2xl text-gray-700 font-bold mb-6">
                                         {keyword}
@@ -40,9 +40,15 @@ export default function KeywordSummary() {
                     <div className="md:col-span-2">
                         <Card title="기사 내용 요약" className="h-full">
                             <div className="bg-gray-100 rounded-xl p-6">
-                                <p className="text-gray-700">
-                                    {isLoading ? '요약 중...' : keywordData.summary}
-                                </p>
+                                {isLoading ? (
+                                    <div className="flex justify-center items-center h-40">
+                                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#4285F4]"></div>
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-700 text-lg">
+                                        {keywordData.summary}
+                                    </p>
+                                )}
                             </div>
                         </Card>
                     </div>

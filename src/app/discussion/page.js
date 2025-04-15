@@ -19,12 +19,19 @@ export default function Discussion() {
         aiPosition: '반대' // AI의 입장
     });
 
+    // 현재 시간을 반환하는 함수
+    const getCurrentTime = () => {
+        const now = new Date();
+        return `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+    };
+
     // 채팅 메시지
     const [messages, setMessages] = useState([
         {
             id: 1,
             sender: 'ai',
-            text: 'AI 반박 논점 생성중..'
+            text: 'AI 반박 논점 생성중..',
+            time: getCurrentTime()
         }
     ]);
 
@@ -41,7 +48,8 @@ export default function Discussion() {
         const newUserMessage = {
             id: messages.length + 1,
             sender: 'user',
-            text: inputMessage
+            text: inputMessage,
+            time: getCurrentTime()
         };
 
         setMessages([...messages, newUserMessage]);
@@ -52,7 +60,8 @@ export default function Discussion() {
             const newAiMessage = {
                 id: messages.length + 2,
                 sender: 'ai',
-                text: '이것은 AI의 응답입니다. 실제 구현에서는 API를 통해 받아온 응답이 표시될 예정입니다.'
+                text: '이것은 AI의 응답입니다. 실제 구현에서는 API를 통해 받아온 응답이 표시될 예정입니다.',
+                time: getCurrentTime()
             };
 
             setMessages(prev => [...prev, newAiMessage]);
@@ -64,7 +73,8 @@ export default function Discussion() {
                     const endMessage = {
                         id: messages.length + 3,
                         sender: 'system',
-                        text: '토론이 종료되었습니다. 토론 요약 페이지로 이동합니다.'
+                        text: '토론이 종료되었습니다. 토론 요약 페이지로 이동합니다.',
+                        time: getCurrentTime()
                     };
 
                     setMessages(prev => [...prev, endMessage]);
@@ -87,7 +97,7 @@ export default function Discussion() {
         <div className="min-h-screen bg-[#E8F0FE] flex flex-col">
             <Header showNav={true} backUrl="/topic-selection" nextText="끝내기" nextUrl="/summary" />
 
-            <main className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-4 gap-6">
+            <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-4 gap-6">
                 {/* 좌측 정보 패널 */}
                 <div className="md:col-span-1">
                     <Card className="mb-6">
@@ -120,7 +130,7 @@ export default function Discussion() {
                 {/* 우측 채팅 인터페이스 */}
                 <div className="md:col-span-3 flex flex-col">
                     <Card className="flex-1 mb-4 overflow-hidden flex flex-col">
-                        <div className="flex-1 overflow-y-auto mb-4">
+                        <div className="flex-1 overflow-y-auto mb-4 max-h-[60vh]">
                             {messages.map((message) => (
                                 <div
                                     key={message.id}
@@ -137,21 +147,30 @@ export default function Discussion() {
                                             <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-2">
                                                 AI
                                             </div>
-                                            <div className="bg-gray-100 p-3 rounded-lg max-w-3/4 inline-block text-left">
-                                                {message.text}
+                                            <div className="flex flex-col">
+                                                <div className="bg-gray-100 p-3 rounded-lg max-w-3/4 inline-block text-left">
+                                                    {message.text}
+                                                </div>
+                                                <span className="message-time text-left">{message.time}</span>
                                             </div>
                                         </div>
                                     )}
 
                                     {message.sender === 'user' && (
-                                        <div className="bg-[#4285F4] text-white p-3 rounded-lg max-w-3/4 inline-block">
-                                            {message.text}
+                                        <div className="flex flex-col items-end">
+                                            <div className="bg-[#4285F4] text-white p-3 rounded-lg max-w-3/4 inline-block">
+                                                {message.text}
+                                            </div>
+                                            <span className="message-time">{message.time}</span>
                                         </div>
                                     )}
 
                                     {message.sender === 'system' && (
-                                        <div className="bg-gray-200 text-gray-700 p-2 rounded-lg inline-block">
-                                            {message.text}
+                                        <div className="flex flex-col items-center">
+                                            <div className="bg-gray-200 text-gray-700 p-2 rounded-lg inline-block">
+                                                {message.text}
+                                            </div>
+                                            <span className="message-time">{message.time}</span>
                                         </div>
                                     )}
                                 </div>
