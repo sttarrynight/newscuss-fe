@@ -2,9 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAppContext } from '@/context/AppContext';
 
-export default function Header({ showNav = false, backUrl = '/', nextUrl = null, nextText = '다음' }) {
+export default function Header({
+                                   showNav = false,
+                                   backUrl = '/',
+                                   nextUrl = null,
+                                   nextText = '다음',
+                                   onNext = null
+                               }) {
     const pathname = usePathname();
+    const { isLoading } = useAppContext();
 
     // Function to render logo with highlighted characters
     const renderLogo = () => (
@@ -12,6 +20,16 @@ export default function Header({ showNav = false, backUrl = '/', nextUrl = null,
             <span className="text-[#0052CC]">N</span>ews<span className="text-[#0052CC]">c</span>uss
         </h1>
     );
+
+    // 다음 버튼 클릭 핸들러
+    const handleNextClick = (e) => {
+        // 커스텀 핸들러가 있으면 사용
+        if (onNext) {
+            e.preventDefault();
+            onNext();
+        }
+        // 아니면 기본 링크 동작 수행
+    };
 
     return (
         <>
@@ -39,13 +57,20 @@ export default function Header({ showNav = false, backUrl = '/', nextUrl = null,
                     </div>
 
                     <div className="w-28 flex justify-end">
-                        {nextUrl && (
+                        {nextUrl || onNext ? (
                             <Link
-                                href={nextUrl}
-                                className="bg-[#4285F4] text-white py-2 px-6 rounded-full font-medium hover:bg-[#3367d6] transition-colors"
+                                href={nextUrl || '#'}
+                                onClick={handleNextClick}
+                                className={`bg-[#4285F4] text-white py-2 px-6 rounded-full font-medium transition-colors ${
+                                    isLoading
+                                        ? 'opacity-50 cursor-not-allowed'
+                                        : 'hover:bg-[#3367d6]'
+                                }`}
                             >
-                                {nextText}
+                                {isLoading ? '처리 중...' : nextText}
                             </Link>
+                        ) : (
+                            <div></div> // 빈 공간 유지
                         )}
                     </div>
                 </nav>

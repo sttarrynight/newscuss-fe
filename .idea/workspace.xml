@@ -4,17 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="init newscuss-fe">
+    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="Enhance UI components and styles for improved user experience">
+      <change afterPath="$PROJECT_DIR$/src/context/AppContext.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/services/api.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/discussion/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/discussion/page.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/globals.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/keyword-summary/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/keyword-summary/page.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/layout.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/layout.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/page.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/summary/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/summary/page.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/topic-selection/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/topic-selection/page.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/common/Button.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/common/Button.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/common/Card.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/common/Card.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/common/Header.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/common/Header.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -25,24 +24,24 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "sttarrynight"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;sttarrynight&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/sttarrynight/newscuss-fe.git",
-    "accountId": "bbc28672-f413-4652-9fd9-52542bf93594"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/sttarrynight/newscuss-fe.git&quot;,
+    &quot;accountId&quot;: &quot;bbc28672-f413-4652-9fd9-52542bf93594&quot;
   }
-}]]></component>
+}</component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 2
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 2
+}</component>
   <component name="ProjectId" id="2vkrtQPieNTcvmiNhYVTAbbFOx8" />
   <component name="ProjectLevelVcsManager">
     <ConfirmationsSetting value="2" id="Add" />
@@ -51,22 +50,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "com.codeium.enabled": "true",
-    "git-widget-placeholder": "main",
-    "kotlin-language-version-configured": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_interpreter_path": "/Users/kimyoungbeen/Library/Application Support/JetBrains/IntelliJIdea2024.3/node/versions/23.11.0/bin/node",
-    "nodejs_package_manager_path": "npm",
-    "npm.dev.executor": "Run",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;com.codeium.enabled&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_interpreter_path&quot;: &quot;/Users/kimyoungbeen/Library/Application Support/JetBrains/IntelliJIdea2024.3/node/versions/23.11.0/bin/node&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;npm.dev.executor&quot;: &quot;Run&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="dev" type="js.build_tools.npm">
       <package-json value="$PROJECT_DIR$/package.json" />
@@ -95,7 +95,13 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1744700126921</updated>
-      <workItem from="1744700127906" duration="4973000" />
+      <workItem from="1744700127906" duration="5957000" />
+      <workItem from="1744852866691" duration="97000" />
+      <workItem from="1744860793225" duration="257000" />
+      <workItem from="1744864641150" duration="942000" />
+      <workItem from="1744900538791" duration="55000" />
+      <workItem from="1745315864954" duration="605000" />
+      <workItem from="1745374675586" duration="2997000" />
     </task>
     <task id="LOCAL-00001" summary="init newscuss-fe">
       <option name="closed" value="true" />
@@ -105,7 +111,15 @@
       <option name="project" value="LOCAL" />
       <updated>1744703024111</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Enhance UI components and styles for improved user experience">
+      <option name="closed" value="true" />
+      <created>1744707009406</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1744707009407</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -124,6 +138,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="init newscuss-fe" />
-    <option name="LAST_COMMIT_MESSAGE" value="init newscuss-fe" />
+    <MESSAGE value="Enhance UI components and styles for improved user experience" />
+    <option name="LAST_COMMIT_MESSAGE" value="Enhance UI components and styles for improved user experience" />
   </component>
 </project>
