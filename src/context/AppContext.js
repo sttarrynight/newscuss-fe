@@ -335,6 +335,7 @@ export function AppProvider({ children }) {
         setIsLoading(true);
         setError(null);
 
+        // 최대 재시도 횟수 제한 (3회로 감소)
         let retryCount = 0;
         const maxRetries = 3;
         const initialDelay = 2000; // 2초
@@ -344,22 +345,53 @@ export function AppProvider({ children }) {
                 const response = await apiService.getSummary(sessionId);
 
                 // 빈 요약이나 오류 메시지가 요약으로 반환되는 경우 처리
-                if (!response.summary ||
-                    response.summary.includes('오류가 발생했습니다') ||
-                    response.summary.includes('실패했습니다')) {
+                if (!response || !response.trim() ||
+                    response.includes('오류가 발생했습니다') ||
+                    response.includes('실패했습니다')) {
 
                     throw new Error('요약 생성 중 서버 오류가 발생했습니다.');
                 }
 
                 // 요약 결과 저장
                 updateSessionInStorage({
-                    discussionSummary: response.summary
+                    discussionSummary: response
                 });
 
-                return response.summary;
+                return response;
             } catch (err) {
+                // API 속도 제한(rate limit) 오류 확인
+                const isRateLimitError =
+                    err.statusCode === 429 ||
+                    err.isRateLimit ||
+                    (err.message && (
+                        err.message.includes('rate limit') ||
+                        err.message.includes('토큰') ||
+                        err.message.includes('API 요청 한도')
+                    ));
+
+                // 타임아웃 오류 확인
+                const isTimeoutError =
+                    err.statusCode === 408 ||
+                    err.isTimeout ||
+                    (err.message && (
+                        err.message.includes('시간이 초과') ||
+                        err.message.includes('timeout')
+                    ));
+
                 // 재시도 횟수 초과 시 오류 발생
                 if (retryCount >= maxRetries) {
+                    // 속도 제한이나 타임아웃 오류의 경우 사용자 친화적인 메시지 제공
+                    if (isRateLimitError) {
+                        throw new Error('요약 생성 중 API 요청 한도에 도달했습니다. 다시 시도하시거나 메시지 기록을 직접 확인해주세요.');
+                    } else if (isTimeoutError) {
+                        throw new Error('요약 생성 시간이 초과되었습니다. 토론 내용이 너무 길 경우 시간이 더 걸릴 수 있습니다.');
+                    } else {
+                        throw err;
+                    }
+                }
+
+                // 재시도 가능한 오류인지 확인 (속도 제한, 타임아웃, 서버 오류만 재시도)
+                if (!isRateLimitError && !isTimeoutError && err.statusCode !== 500) {
                     throw err;
                 }
 

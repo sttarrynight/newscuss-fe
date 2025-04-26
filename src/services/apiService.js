@@ -156,7 +156,7 @@ const apiService = {
      * 토론 요약 요청
      */
     getSummary: async (sessionId) => {
-        const timeout = API_CONFIG.SUMMARY_TIMEOUT; // 요약 전용 타임아웃 적용
+        const timeout = API_CONFIG.SUMMARY_TIMEOUT; // 요약 전용 타임아웃 적용 (60000ms = 60초)
 
         try {
             // 타임아웃 처리
@@ -185,6 +185,15 @@ const apiService = {
 
             // 서버 측 오류 메시지 확인 (Flask API에서 200 상태 코드와 함께 오류 메시지를 보낼 수 있음)
             if (data.error) {
+                // 오류가 API 속도 제한(rate limit)과 관련된 경우 특별 처리
+                if (data.error.includes('rate limit') || data.error.includes('토큰') || data.error.includes('토큰 한도')) {
+                    throw {
+                        message: '요약 생성 중 API 요청 한도에 도달했습니다. 잠시 후 다시 시도해주세요.',
+                        statusCode: 429, // Rate Limit Exceeded
+                        isRateLimit: true
+                    };
+                }
+
                 throw {
                     message: `요약 생성 중 오류: ${data.error}`,
                     statusCode: 200,
@@ -192,14 +201,37 @@ const apiService = {
                 };
             }
 
-            return data;
+            // 요약이 너무 짧거나 예상치 못한 형식인 경우 검증
+            if (!data.summary ||
+                data.summary.length < 30 ||
+                data.summary.includes('오류가 발생했습니다') ||
+                data.summary.includes('실패했습니다')) {
+
+                throw {
+                    message: '요약 생성 중 문제가 발생했습니다. 토론 내용이 너무 길거나 복잡할 수 있습니다.',
+                    statusCode: 500,
+                    isParsing: true
+                };
+            }
+
+            return data.summary;
         } catch (error) {
             // 타임아웃 오류 특수 처리
             if (error.message && error.message.includes('시간이 초과되었습니다')) {
                 throw {
-                    message: '요약 생성 시간이 초과되었습니다. 토론 내용이 너무 긴 경우 시간이 더 걸릴 수 있습니다.',
+                    message: '요약 생성 시간이 초과되었습니다. 토론 내용이 너무 길 경우 시간이 더 걸릴 수 있습니다.',
                     statusCode: 408, // Request Timeout
                     isTimeout: true
+                };
+            }
+
+            // API 속도 제한(rate limit) 오류 특수 처리
+            if (error.isRateLimit ||
+                (error.message && (error.message.includes('rate limit') || error.message.includes('Rate limit')))) {
+                throw {
+                    message: '요약 생성 중 API 요청 한도에 도달했습니다. 잠시 후 다시 시도해주세요.',
+                    statusCode: 429, // Rate Limit Exceeded
+                    isRateLimit: true
                 };
             }
 

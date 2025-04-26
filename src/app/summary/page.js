@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Header from '@/components/common/Header';
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
@@ -14,6 +13,7 @@ export default function Summary() {
     const [isFetchingSummary, setIsFetchingSummary] = useState(true);
     const [retryCount, setRetryCount] = useState(0);
     const [retryMessage, setRetryMessage] = useState('');
+    const [maxRetryReached, setMaxRetryReached] = useState(false);
 
     const {
         sessionId,
@@ -37,19 +37,30 @@ export default function Summary() {
         const fetchSummary = async () => {
             setIsFetchingSummary(true);
             try {
+                // 최대 재시도 횟수 (3회)
+                if (retryCount >= 3) {
+                    setMaxRetryReached(true);
+                    setRetryMessage('요약 생성이 여러 번 실패했습니다. 토론 내용이 너무 길거나 복잡한 경우 요약이 어려울 수 있습니다.');
+                    setIsFetchingSummary(false);
+                    return;
+                }
+
                 const summary = await getSummary();
                 setDiscussionSummary(summary);
                 setRetryMessage('');
             } catch (error) {
                 console.error('토론 요약 가져오기 실패:', error);
 
-                // 오류 메시지가 토큰 한도와 관련되어 있는지 확인
+                // 오류 메시지에 따른 적절한 안내 메시지 표시
                 if (error.message && (
                     error.message.includes('토큰') ||
-                    error.message.includes('길이') ||
-                    error.message.includes('rate limit')
+                    error.message.includes('rate limit') ||
+                    error.message.includes('timeout') ||
+                    error.message.includes('시간 초과')
                 )) {
                     setRetryMessage('토론 내용이 너무 길어 요약 처리 중 지연이 발생했습니다. 잠시 후 다시 시도해 주세요.');
+                } else if (error.message && error.message.includes('세션')) {
+                    setRetryMessage('세션이 만료되었습니다. 처음부터 다시 시작해 주세요.');
                 } else {
                     setDiscussionSummary('토론 요약을 가져오는 중 오류가 발생했습니다. 나중에 다시 시도해주세요.');
                 }
@@ -63,9 +74,14 @@ export default function Summary() {
 
     // 재시도 핸들러
     const handleRetry = () => {
-        setIsFetchingSummary(true);
-        setRetryCount(prev => prev + 1);
-        setRetryMessage('요약을 다시 시도하고 있습니다...');
+        if (retryCount < 3) {
+            setIsFetchingSummary(true);
+            setRetryCount(prev => prev + 1);
+            setRetryMessage('요약을 다시 시도하고 있습니다...');
+        } else {
+            setMaxRetryReached(true);
+            setRetryMessage('최대 재시도 횟수에 도달했습니다. 다른 방법을 시도해 주세요.');
+        }
     };
 
     // 입장 바꾸기 처리
@@ -77,6 +93,11 @@ export default function Summary() {
     const handleStartOver = () => {
         resetSession();
         router.push('/');
+    };
+
+    // 메시지 직접 확인 처리 (토론 페이지로 돌아가기)
+    const handleViewMessages = () => {
+        router.push('/discussion');
     };
 
     return (
@@ -102,18 +123,27 @@ export default function Summary() {
                                 토론 내용이 길수록 더 오래 걸릴 수 있습니다.
                             </p>
                         </div>
-                    ) : error ? (
+                    ) : error || maxRetryReached ? (
                         <div className="bg-red-50 rounded-xl p-6 mb-6 text-center">
                             <p className="text-red-600">
-                                {error}
+                                {maxRetryReached ? retryMessage : error}
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
+                                {!maxRetryReached && (
+                                    <Button
+                                        variant="primary"
+                                        onClick={handleRetry}
+                                        className="flex-1 sm:flex-initial"
+                                    >
+                                        다시 시도하기
+                                    </Button>
+                                )}
                                 <Button
-                                    variant="primary"
-                                    onClick={handleRetry}
+                                    variant="secondary"
+                                    onClick={handleViewMessages}
                                     className="flex-1 sm:flex-initial"
                                 >
-                                    다시 시도하기
+                                    메시지 직접 확인
                                 </Button>
                                 <Button
                                     variant="secondary"

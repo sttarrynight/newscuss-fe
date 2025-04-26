@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="Refactor API service and enhance error handling with session management utilities">
+    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="Refactor API service to implement summary request timeout and enhance error handling with retry logic">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/summary/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/summary/page.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/context/AppContext.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/context/AppContext.js" afterDir="false" />
@@ -103,7 +103,7 @@
       <workItem from="1745493040457" duration="268000" />
       <workItem from="1745495177760" duration="333000" />
       <workItem from="1745546603975" duration="630000" />
-      <workItem from="1745646760037" duration="2527000" />
+      <workItem from="1745646760037" duration="5553000" />
     </task>
     <task id="LOCAL-00001" summary="init newscuss-fe">
       <option name="closed" value="true" />
@@ -137,7 +137,15 @@
       <option name="project" value="LOCAL" />
       <updated>1745391515471</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Refactor API service to implement summary request timeout and enhance error handling with retry logic">
+      <option name="closed" value="true" />
+      <created>1745650421358</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1745650421358</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -159,6 +167,7 @@
     <MESSAGE value="Enhance UI components and styles for improved user experience" />
     <MESSAGE value="Implement API client and application context for discussion features" />
     <MESSAGE value="Refactor API service and enhance error handling with session management utilities" />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor API service and enhance error handling with session management utilities" />
+    <MESSAGE value="Refactor API service to implement summary request timeout and enhance error handling with retry logic" />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor API service to implement summary request timeout and enhance error handling with retry logic" />
   </component>
 </project>
