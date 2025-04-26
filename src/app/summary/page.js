@@ -12,6 +12,8 @@ export default function Summary() {
     const router = useRouter();
     const [discussionSummary, setDiscussionSummary] = useState('');
     const [isFetchingSummary, setIsFetchingSummary] = useState(true);
+    const [retryCount, setRetryCount] = useState(0);
+    const [retryMessage, setRetryMessage] = useState('');
 
     const {
         sessionId,
@@ -37,16 +39,34 @@ export default function Summary() {
             try {
                 const summary = await getSummary();
                 setDiscussionSummary(summary);
+                setRetryMessage('');
             } catch (error) {
                 console.error('토론 요약 가져오기 실패:', error);
-                setDiscussionSummary('토론 요약을 가져오는 중 오류가 발생했습니다. 나중에 다시 시도해주세요.');
+
+                // 오류 메시지가 토큰 한도와 관련되어 있는지 확인
+                if (error.message && (
+                    error.message.includes('토큰') ||
+                    error.message.includes('길이') ||
+                    error.message.includes('rate limit')
+                )) {
+                    setRetryMessage('토론 내용이 너무 길어 요약 처리 중 지연이 발생했습니다. 잠시 후 다시 시도해 주세요.');
+                } else {
+                    setDiscussionSummary('토론 요약을 가져오는 중 오류가 발생했습니다. 나중에 다시 시도해주세요.');
+                }
             } finally {
                 setIsFetchingSummary(false);
             }
         };
 
         fetchSummary();
-    }, [sessionId, getSummary, router]);
+    }, [sessionId, getSummary, router, retryCount]);
+
+    // 재시도 핸들러
+    const handleRetry = () => {
+        setIsFetchingSummary(true);
+        setRetryCount(prev => prev + 1);
+        setRetryMessage('요약을 다시 시도하고 있습니다...');
+    };
 
     // 입장 바꾸기 처리
     const handleChangePosition = () => {
@@ -73,21 +93,36 @@ export default function Summary() {
                     <h2 className="text-2xl font-bold mb-6 text-center">오늘의 토론 요약</h2>
 
                     {isFetchingSummary ? (
-                        <div className="flex justify-center items-center py-10">
-                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#4285F4]"></div>
+                        <div className="flex flex-col justify-center items-center py-10">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#4285F4] mb-4"></div>
+                            <p className="text-gray-600 text-center">
+                                {retryMessage || '토론 내용을 요약하고 있습니다...'}
+                            </p>
+                            <p className="text-sm text-gray-500 mt-2">
+                                토론 내용이 길수록 더 오래 걸릴 수 있습니다.
+                            </p>
                         </div>
                     ) : error ? (
                         <div className="bg-red-50 rounded-xl p-6 mb-6 text-center">
                             <p className="text-red-600">
                                 {error}
                             </p>
-                            <Button
-                                variant="primary"
-                                onClick={handleStartOver}
-                                className="mt-4"
-                            >
-                                처음으로 돌아가기
-                            </Button>
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
+                                <Button
+                                    variant="primary"
+                                    onClick={handleRetry}
+                                    className="flex-1 sm:flex-initial"
+                                >
+                                    다시 시도하기
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    onClick={handleStartOver}
+                                    className="flex-1 sm:flex-initial"
+                                >
+                                    처음으로 돌아가기
+                                </Button>
+                            </div>
                         </div>
                     ) : (
                         <>
@@ -110,9 +145,22 @@ export default function Summary() {
                                 )}
 
                                 <h3 className="font-bold text-lg mb-2">토론 요약:</h3>
-                                <p className="text-gray-700 whitespace-pre-line">
-                                    {discussionSummary}
-                                </p>
+                                {discussionSummary ? (
+                                    <p className="text-gray-700 whitespace-pre-line">
+                                        {discussionSummary}
+                                    </p>
+                                ) : (
+                                    <div className="text-center py-4">
+                                        <p className="text-gray-500">토론 요약을 가져오는데 문제가 발생했습니다.</p>
+                                        <Button
+                                            variant="primary"
+                                            onClick={handleRetry}
+                                            className="mt-4"
+                                        >
+                                            다시 시도하기
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="border-t border-gray-200 pt-6 mt-2">

@@ -1,14 +1,15 @@
 import { logError, normalizeError, isNetworkError } from '@/utils/errorUtils';
 
 /**
- * API 서비스 설정
- */
+* API 서비스 설정
+*/
 const API_CONFIG = {
     // 기본 URL (환경 변수에서 가져오거나 기본값 사용)
     BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api',
 
     // 타임아웃 설정 (밀리초)
     TIMEOUT: 30000,
+    SUMMARY_TIMEOUT: 60000, // 요약 요청은 더 긴 타임아웃 적용
 
     // 재시도 설정
     RETRY: {
@@ -155,7 +156,56 @@ const apiService = {
      * 토론 요약 요청
      */
     getSummary: async (sessionId) => {
-        return apiRequest(`/discussion/summary/${sessionId}`);
+        const timeout = API_CONFIG.SUMMARY_TIMEOUT; // 요약 전용 타임아웃 적용
+
+        try {
+            // 타임아웃 처리
+            const fetchPromise = fetch(`${API_CONFIG.BASE_URL}/discussion/summary/${sessionId}`, {
+                method: 'GET',
+                headers: API_CONFIG.HEADERS,
+            });
+
+            const response = await Promise.race([
+                fetchPromise,
+                createTimeoutPromise(timeout)
+            ]);
+
+            // 응답 상태 확인
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw {
+                    message: errorData.error || `요약 요청 실패: ${response.status} ${response.statusText}`,
+                    statusCode: response.status,
+                    data: errorData
+                };
+            }
+
+            // 응답 데이터 파싱
+            const data = await response.json();
+
+            // 서버 측 오류 메시지 확인 (Flask API에서 200 상태 코드와 함께 오류 메시지를 보낼 수 있음)
+            if (data.error) {
+                throw {
+                    message: `요약 생성 중 오류: ${data.error}`,
+                    statusCode: 200,
+                    data: data
+                };
+            }
+
+            return data;
+        } catch (error) {
+            // 타임아웃 오류 특수 처리
+            if (error.message && error.message.includes('시간이 초과되었습니다')) {
+                throw {
+                    message: '요약 생성 시간이 초과되었습니다. 토론 내용이 너무 긴 경우 시간이 더 걸릴 수 있습니다.',
+                    statusCode: 408, // Request Timeout
+                    isTimeout: true
+                };
+            }
+
+            // 그 외 오류는 일반 오류 처리
+            throw normalizeError(error);
+        }
     },
 
     /**

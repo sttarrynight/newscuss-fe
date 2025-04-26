@@ -335,15 +335,49 @@ export function AppProvider({ children }) {
         setIsLoading(true);
         setError(null);
 
+        let retryCount = 0;
+        const maxRetries = 3;
+        const initialDelay = 2000; // 2초
+
+        const attemptGetSummary = async (delay) => {
+            try {
+                const response = await apiService.getSummary(sessionId);
+
+                // 빈 요약이나 오류 메시지가 요약으로 반환되는 경우 처리
+                if (!response.summary ||
+                    response.summary.includes('오류가 발생했습니다') ||
+                    response.summary.includes('실패했습니다')) {
+
+                    throw new Error('요약 생성 중 서버 오류가 발생했습니다.');
+                }
+
+                // 요약 결과 저장
+                updateSessionInStorage({
+                    discussionSummary: response.summary
+                });
+
+                return response.summary;
+            } catch (err) {
+                // 재시도 횟수 초과 시 오류 발생
+                if (retryCount >= maxRetries) {
+                    throw err;
+                }
+
+                // 재시도 카운트 증가 및 지연 시간 계산 (지수 백오프)
+                retryCount++;
+                const nextDelay = delay * 1.5;
+
+                console.log(`요약 요청 재시도 중... (${retryCount}/${maxRetries}), ${nextDelay}ms 후 재시도`);
+
+                // 지정된 시간만큼 대기 후 재시도
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return attemptGetSummary(nextDelay);
+            }
+        };
+
         try {
-            const response = await apiService.getSummary(sessionId);
-
-            // 요약 결과 저장
-            updateSessionInStorage({
-                discussionSummary: response.summary
-            });
-
-            return response.summary;
+            const summary = await attemptGetSummary(initialDelay);
+            return summary;
         } catch (err) {
             const normalizedError = normalizeError(err);
             setError(normalizedError.message);
