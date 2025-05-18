@@ -10,20 +10,22 @@ import { useAppContext } from '@/context/AppContext';
 export default function Summary() {
     const router = useRouter();
     const [discussionSummary, setDiscussionSummary] = useState('');
-    const [isFetchingSummary, setIsFetchingSummary] = useState(true);
-    const [retryCount, setRetryCount] = useState(0);
-    const [retryMessage, setRetryMessage] = useState('');
-    const [maxRetryReached, setMaxRetryReached] = useState(false);
+    const [isFetchingSummary, setIsFetchingSummary] = useState(false);
+    const [summaryError, setSummaryError] = useState('');
+    const [fetchAttempted, setFetchAttempted] = useState(false); // 중요: 한 번만 시도
 
     const {
         sessionId,
         topic,
         userPosition,
         aiPosition,
-        getSummary,
         resetSession,
-        isLoading,
-        error
+        error,
+        // 새로 추가
+        getCachedSummary,
+        summaryStatus,
+        summaryProgress,
+        startBackgroundSummary
     } = useAppContext();
 
     // 세션이 없으면 홈으로 리다이렉트
@@ -33,69 +35,76 @@ export default function Summary() {
             return;
         }
 
-        // 토론 요약 가져오기
-        const fetchSummary = async () => {
-            setIsFetchingSummary(true);
-            try {
-                // 최대 재시도 횟수 (3회)
-                if (retryCount >= 3) {
-                    setMaxRetryReached(true);
-                    setRetryMessage('요약 생성이 여러 번 실패했습니다. 토론 내용이 너무 길거나 복잡한 경우 요약이 어려울 수 있습니다.');
-                    setIsFetchingSummary(false);
-                    return;
-                }
-
-                const summary = await getSummary();
-                setDiscussionSummary(summary);
-                setRetryMessage('');
-            } catch (error) {
-                console.error('토론 요약 가져오기 실패:', error);
-
-                // 오류 메시지에 따른 적절한 안내 메시지 표시
-                if (error.message && (
-                    error.message.includes('토큰') ||
-                    error.message.includes('rate limit') ||
-                    error.message.includes('timeout') ||
-                    error.message.includes('시간 초과')
-                )) {
-                    setRetryMessage('토론 내용이 너무 길어 요약 처리 중 지연이 발생했습니다. 잠시 후 다시 시도해 주세요.');
-                } else if (error.message && error.message.includes('세션')) {
-                    setRetryMessage('세션이 만료되었습니다. 처음부터 다시 시작해 주세요.');
-                } else {
-                    setDiscussionSummary('토론 요약을 가져오는 중 오류가 발생했습니다. 나중에 다시 시도해주세요.');
-                }
-            } finally {
-                setIsFetchingSummary(false);
-            }
-        };
-
-        fetchSummary();
-    }, [sessionId, getSummary, router, retryCount]);
-
-    // 재시도 핸들러
-    const handleRetry = () => {
-        if (retryCount < 3) {
-            setIsFetchingSummary(true);
-            setRetryCount(prev => prev + 1);
-            setRetryMessage('요약을 다시 시도하고 있습니다...');
-        } else {
-            setMaxRetryReached(true);
-            setRetryMessage('최대 재시도 횟수에 도달했습니다. 다른 방법을 시도해 주세요.');
+        // 즉시 캐시된 요약 확인
+        const cachedSummary = getCachedSummary();
+        if (cachedSummary) {
+            setDiscussionSummary(cachedSummary);
+            setIsFetchingSummary(false);
+            return;
         }
+
+        // 캐시된 요약이 없고 현재 요약 중인 경우
+        if (summaryStatus === 'SUMMARIZING') {
+            setIsFetchingSummary(true);
+            // 요약 완료를 기다리는 폴링 로직
+            const pollForSummary = setInterval(() => {
+                const newCachedSummary = getCachedSummary();
+                if (newCachedSummary) {
+                    setDiscussionSummary(newCachedSummary);
+                    setIsFetchingSummary(false);
+                    clearInterval(pollForSummary);
+                }
+            }, 1000);
+
+            // 30초 후 타임아웃
+            setTimeout(() => {
+                clearInterval(pollForSummary);
+                if (!discussionSummary) {
+                    setIsFetchingSummary(false);
+                    setSummaryError('요약 생성 시간이 초과되었습니다.');
+                }
+            }, 30000);
+
+            return () => clearInterval(pollForSummary);
+        }
+
+        // 캐시된 요약이 없으면 한 번만 시도
+        if (!fetchAttempted && summaryStatus !== 'COMPLETED') {
+            setFetchAttempted(true);
+            setIsFetchingSummary(true);
+            setSummaryError('');
+
+            startBackgroundSummary()
+                .then(summary => {
+                    setDiscussionSummary(summary);
+                })
+                .catch(error => {
+                    console.error('토론 요약 가져오기 실패:', error);
+                    setSummaryError(error.message || '토론 요약을 가져오는 중 오류가 발생했습니다.');
+                })
+                .finally(() => {
+                    setIsFetchingSummary(false);
+                });
+        }
+    }, [sessionId, router, fetchAttempted, summaryStatus, getCachedSummary, startBackgroundSummary, discussionSummary]);
+
+    // 수동 재시도 핸들러
+    const handleRetry = () => {
+        setFetchAttempted(false); // 재시도 플래그 리셋
+        setSummaryError('');
+        setDiscussionSummary('');
     };
 
-    // 입장 바꾸기 처리
+    // 나머지 핸들러들은 동일...
     const handleChangePosition = () => {
         router.push('/topic-selection');
     };
 
-    // 처음으로 돌아가기 처리
     const handleStartOver = () => {
         resetSession();
         router.push('/');
     };
 
-    // 메시지 직접 확인 처리 (토론 페이지로 돌아가기)
     const handleViewMessages = () => {
         router.push('/discussion');
     };
@@ -116,28 +125,33 @@ export default function Summary() {
                     {isFetchingSummary ? (
                         <div className="flex flex-col justify-center items-center py-10">
                             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#4285F4] mb-4"></div>
-                            <p className="text-gray-600 text-center">
-                                {retryMessage || '토론 내용을 요약하고 있습니다...'}
-                            </p>
+                            <p className="text-gray-600 text-center">토론 내용을 요약하고 있습니다...</p>
+                            {summaryStatus === 'SUMMARIZING' && summaryProgress > 0 && (
+                                <div className="w-full max-w-md mt-4">
+                                    <div className="bg-gray-200 rounded-full h-2">
+                                        <div
+                                            className="bg-[#4285F4] h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${summaryProgress}%` }}
+                                        ></div>
+                                    </div>
+                                    <p className="text-sm text-gray-500 mt-2 text-center">{summaryProgress}% 완료</p>
+                                </div>
+                            )}
                             <p className="text-sm text-gray-500 mt-2">
                                 토론 내용이 길수록 더 오래 걸릴 수 있습니다.
                             </p>
                         </div>
-                    ) : error || maxRetryReached ? (
+                    ) : summaryError ? (
                         <div className="bg-red-50 rounded-xl p-6 mb-6 text-center">
-                            <p className="text-red-600">
-                                {maxRetryReached ? retryMessage : error}
-                            </p>
-                            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
-                                {!maxRetryReached && (
-                                    <Button
-                                        variant="primary"
-                                        onClick={handleRetry}
-                                        className="flex-1 sm:flex-initial"
-                                    >
-                                        다시 시도하기
-                                    </Button>
-                                )}
+                            <p className="text-red-600 mb-4">{summaryError}</p>
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                <Button
+                                    variant="primary"
+                                    onClick={handleRetry}
+                                    className="flex-1 sm:flex-initial"
+                                >
+                                    다시 시도하기
+                                </Button>
                                 <Button
                                     variant="secondary"
                                     onClick={handleViewMessages}

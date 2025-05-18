@@ -27,7 +27,10 @@ export default function Discussion() {
         isLoading,
         error,
         setError,
-        resetSession
+        resetSession,
+        startBackgroundSummary,
+        summaryStatus,
+        summaryProgress
     } = useAppContext();
 
     // 세션이 없으면 홈으로 리다이렉트
@@ -64,7 +67,7 @@ export default function Discussion() {
     };
 
     // 토론 종료 처리
-    const handleEndDiscussion = () => {
+    const handleEndDiscussion = async () => {
         if (retryCount > 0) {
             // 이미 오류가 발생했던 경우 확인 없이 바로 이동
             router.push('/summary');
@@ -90,6 +93,13 @@ export default function Discussion() {
         if (messageCount.user <= 1) {
             setShowEndConfirm(true);
         } else {
+            // 백그라운드 요약 시작
+            try {
+                await startBackgroundSummary();
+            } catch (error) {
+                console.error('백그라운드 요약 시작 실패:', error);
+                // 요약 실패해도 Summary 페이지로 이동
+            }
             router.push('/summary');
         }
     };
@@ -112,7 +122,16 @@ export default function Discussion() {
                     </Button>
                     <Button
                         variant="primary"
-                        onClick={() => router.push('/summary')}
+                        onClick={async () => {
+                            setShowEndConfirm(false);
+                            // 백그라운드 요약 시작
+                            try {
+                                await startBackgroundSummary();
+                            } catch (error) {
+                                console.error('백그라운드 요약 시작 실패:', error);
+                            }
+                            router.push('/summary');
+                        }}
                     >
                         토론 종료하기
                     </Button>
@@ -159,7 +178,13 @@ export default function Discussion() {
             <Header
                 showNav={true}
                 backUrl="/topic-selection"
-                nextText="끝내기"
+                nextText={
+                    summaryStatus === 'SUMMARIZING'
+                        ? `요약 중... ${summaryProgress}%`
+                        : summaryStatus === 'COMPLETED'
+                            ? '요약 완료 - 확인하기'
+                            : '끝내기'
+                }
                 onNext={handleEndDiscussion}
             />
 

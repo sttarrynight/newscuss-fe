@@ -4,11 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="Refactor API service to implement summary request timeout and enhance error handling with retry logic">
+    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="discussion, summary 페이지 리팩토링: 요약문 먼저 생성 후 summary 페이지에 전달 방식">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/discussion/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/discussion/page.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/summary/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/summary/page.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/context/AppContext.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/context/AppContext.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/services/apiService.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/apiService.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -17,6 +17,7 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="HARD" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {
@@ -58,6 +59,7 @@
     &quot;nodejs_interpreter_path&quot;: &quot;/Users/kimyoungbeen/Library/Application Support/JetBrains/IntelliJIdea2024.3/node/versions/23.11.0/bin/node&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
     &quot;npm.dev.executor&quot;: &quot;Run&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
     &quot;ts.external.directory.path&quot;: &quot;/Applications/IntelliJ IDEA.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
@@ -103,7 +105,11 @@
       <workItem from="1745493040457" duration="268000" />
       <workItem from="1745495177760" duration="333000" />
       <workItem from="1745546603975" duration="630000" />
-      <workItem from="1745646760037" duration="5553000" />
+      <workItem from="1745646760037" duration="5669000" />
+      <workItem from="1746063031037" duration="8410000" />
+      <workItem from="1746505856598" duration="2000" />
+      <workItem from="1747547199942" duration="452000" />
+      <workItem from="1747547659123" duration="5931000" />
     </task>
     <task id="LOCAL-00001" summary="init newscuss-fe">
       <option name="closed" value="true" />
@@ -145,7 +151,15 @@
       <option name="project" value="LOCAL" />
       <updated>1745650421358</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="Refactor API service to enhance summary request handling with improved error management and retry logic">
+      <option name="closed" value="true" />
+      <created>1745655717946</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1745655717946</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -168,6 +182,8 @@
     <MESSAGE value="Implement API client and application context for discussion features" />
     <MESSAGE value="Refactor API service and enhance error handling with session management utilities" />
     <MESSAGE value="Refactor API service to implement summary request timeout and enhance error handling with retry logic" />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor API service to implement summary request timeout and enhance error handling with retry logic" />
+    <MESSAGE value="Refactor API service to enhance summary request handling with improved error management and retry logic" />
+    <MESSAGE value="discussion, summary 페이지 리팩토링: 요약문 먼저 생성 후 summary 페이지에 전달 방식" />
+    <option name="LAST_COMMIT_MESSAGE" value="discussion, summary 페이지 리팩토링: 요약문 먼저 생성 후 summary 페이지에 전달 방식" />
   </component>
 </project>

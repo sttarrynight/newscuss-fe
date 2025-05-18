@@ -34,6 +34,9 @@ export function AppProvider({ children }) {
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1); // 메시지 페이지네이션 상태
     const [hasMoreMessages, setHasMoreMessages] = useState(false); // 더 불러올 메시지 존재 여부
+    const [summaryStatus, setSummaryStatus] = useState('PENDING'); // 'PENDING' | 'SUMMARIZING' | 'COMPLETED' | 'FAILED'
+    const [summaryProgress, setSummaryProgress] = useState(0); // 0-100
+    const [cachedSummary, setCachedSummary] = useState(''); // 캐시된 요약
 
     // 세션 복원 (컴포넌트 마운트 시)
     useEffect(() => {
@@ -63,6 +66,14 @@ export function AppProvider({ children }) {
                             setMessages(storedSession.messages);
                             setHasMoreMessages(false);
                         }
+                    }
+
+                    // 요약 상태 복원 추가
+                    if (storedSession.summaryStatus) {
+                        setSummaryStatus(storedSession.summaryStatus);
+                    }
+                    if (storedSession.discussionSummary) {
+                        setCachedSummary(storedSession.discussionSummary);
                     }
                 }
             } catch (err) {
@@ -324,7 +335,7 @@ export function AppProvider({ children }) {
         }
     }, [currentPage, messages.length]);
 
-    // 토론 요약 가져오기
+    // 토론 요약 가져오기 - 단순화된 버전
     const getSummary = async () => {
         if (!sessionId) {
             const error = new Error('세션이 유효하지 않습니다.');
@@ -335,80 +346,19 @@ export function AppProvider({ children }) {
         setIsLoading(true);
         setError(null);
 
-        // 최대 재시도 횟수 제한 (3회로 감소)
-        let retryCount = 0;
-        const maxRetries = 3;
-        const initialDelay = 2000; // 2초
-
-        const attemptGetSummary = async (delay) => {
-            try {
-                const response = await apiService.getSummary(sessionId);
-
-                // 빈 요약이나 오류 메시지가 요약으로 반환되는 경우 처리
-                if (!response || !response.trim() ||
-                    response.includes('오류가 발생했습니다') ||
-                    response.includes('실패했습니다')) {
-
-                    throw new Error('요약 생성 중 서버 오류가 발생했습니다.');
-                }
-
-                // 요약 결과 저장
-                updateSessionInStorage({
-                    discussionSummary: response
-                });
-
-                return response;
-            } catch (err) {
-                // API 속도 제한(rate limit) 오류 확인
-                const isRateLimitError =
-                    err.statusCode === 429 ||
-                    err.isRateLimit ||
-                    (err.message && (
-                        err.message.includes('rate limit') ||
-                        err.message.includes('토큰') ||
-                        err.message.includes('API 요청 한도')
-                    ));
-
-                // 타임아웃 오류 확인
-                const isTimeoutError =
-                    err.statusCode === 408 ||
-                    err.isTimeout ||
-                    (err.message && (
-                        err.message.includes('시간이 초과') ||
-                        err.message.includes('timeout')
-                    ));
-
-                // 재시도 횟수 초과 시 오류 발생
-                if (retryCount >= maxRetries) {
-                    // 속도 제한이나 타임아웃 오류의 경우 사용자 친화적인 메시지 제공
-                    if (isRateLimitError) {
-                        throw new Error('요약 생성 중 API 요청 한도에 도달했습니다. 다시 시도하시거나 메시지 기록을 직접 확인해주세요.');
-                    } else if (isTimeoutError) {
-                        throw new Error('요약 생성 시간이 초과되었습니다. 토론 내용이 너무 길 경우 시간이 더 걸릴 수 있습니다.');
-                    } else {
-                        throw err;
-                    }
-                }
-
-                // 재시도 가능한 오류인지 확인 (속도 제한, 타임아웃, 서버 오류만 재시도)
-                if (!isRateLimitError && !isTimeoutError && err.statusCode !== 500) {
-                    throw err;
-                }
-
-                // 재시도 카운트 증가 및 지연 시간 계산 (지수 백오프)
-                retryCount++;
-                const nextDelay = delay * 1.5;
-
-                console.log(`요약 요청 재시도 중... (${retryCount}/${maxRetries}), ${nextDelay}ms 후 재시도`);
-
-                // 지정된 시간만큼 대기 후 재시도
-                await new Promise(resolve => setTimeout(resolve, delay));
-                return attemptGetSummary(nextDelay);
-            }
-        };
-
         try {
-            const summary = await attemptGetSummary(initialDelay);
+            const summary = await apiService.getSummary(sessionId);
+
+            // 요약 결과 검증
+            if (!summary || summary.trim().length < 20) {
+                throw new Error('생성된 요약이 너무 짧습니다. 다시 시도해주세요.');
+            }
+
+            // 요약 결과 저장
+            updateSessionInStorage({
+                discussionSummary: summary
+            });
+
             return summary;
         } catch (err) {
             const normalizedError = normalizeError(err);
@@ -450,6 +400,71 @@ export function AppProvider({ children }) {
         return `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
     };
 
+    // 백그라운드 요약 시작 함수
+    const startBackgroundSummary = async () => {
+        if (!sessionId || summaryStatus === 'SUMMARIZING' || summaryStatus === 'COMPLETED') {
+            return;
+        }
+
+        setSummaryStatus('SUMMARIZING');
+        setSummaryProgress(10);
+        setError(null);
+
+        try {
+            // 요약 시작 알림
+            setSummaryProgress(30);
+
+            const summary = await apiService.getSummary(sessionId);
+
+            // 요약 완료
+            setSummaryProgress(100);
+            setCachedSummary(summary);
+            setSummaryStatus('COMPLETED');
+
+            // 세션 스토리지에 저장
+            updateSessionInStorage({
+                discussionSummary: summary,
+                summaryStatus: 'COMPLETED'
+            });
+
+            return summary;
+        } catch (err) {
+            setSummaryStatus('FAILED');
+            setSummaryProgress(0);
+
+            const normalizedError = normalizeError(err);
+            setError(normalizedError.message);
+
+            if (isSessionExpiredError(err)) {
+                resetSession();
+            }
+
+            logError(err, 'AppContext.startBackgroundSummary');
+            throw normalizedError;
+        }
+    };
+
+    // 캐시된 요약 가져오기 함수
+    const getCachedSummary = () => {
+        if (summaryStatus === 'COMPLETED' && cachedSummary) {
+            return cachedSummary;
+        }
+
+        // 세션 스토리지에서 확인
+        try {
+            const storedSession = loadSessionFromStorage();
+            if (storedSession?.discussionSummary && storedSession?.summaryStatus === 'COMPLETED') {
+                setCachedSummary(storedSession.discussionSummary);
+                setSummaryStatus('COMPLETED');
+                return storedSession.discussionSummary;
+            }
+        } catch (err) {
+            logError(err, 'AppContext.getCachedSummary');
+        }
+
+        return null;
+    };
+
     // 제공할 컨텍스트 값
     const contextValue = {
         // 상태
@@ -465,6 +480,9 @@ export function AppProvider({ children }) {
         isLoading,
         error,
         hasMoreMessages,
+        summaryStatus,
+        summaryProgress,
+        cachedSummary,
 
         // 액션 함수
         submitUrl,
@@ -474,6 +492,8 @@ export function AppProvider({ children }) {
         loadMoreMessages,
         getSummary,
         resetSession,
+        startBackgroundSummary,
+        getCachedSummary,
 
         // 상태 설정 함수
         setUserPosition,
