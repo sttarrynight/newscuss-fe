@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/common/Header';
 import Card from '@/components/common/Card';
@@ -14,6 +14,7 @@ export default function Discussion() {
     const [inputMessage, setInputMessage] = useState('');
     const [showEndConfirm, setShowEndConfirm] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
+    const textareaRef = useRef(null);
 
     const {
         sessionId,
@@ -39,6 +40,34 @@ export default function Discussion() {
             router.push('/topic-selection');
         }
     }, [sessionId, topic, userPosition, router]);
+
+    // textarea 자동 높이 조절
+    useEffect(() => {
+        if (textareaRef.current) {
+            // 높이 초기화
+            textareaRef.current.style.height = 'auto';
+
+            // 내용에 맞춰 높이 조절
+            const scrollHeight = textareaRef.current.scrollHeight;
+            const maxHeight = 120; // 최대 높이 (약 5-6줄)
+
+            if (scrollHeight <= maxHeight) {
+                textareaRef.current.style.height = scrollHeight + 'px';
+                textareaRef.current.style.overflow = 'hidden';
+            } else {
+                textareaRef.current.style.height = maxHeight + 'px';
+                textareaRef.current.style.overflow = 'auto';
+            }
+        }
+    }, [inputMessage]);
+
+    // 엔터키 처리 (Shift+Enter는 줄바꿈, Enter는 전송)
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit(e);
+        }
+    };
 
     // 에러 처리 후 재시도 기능
     const handleRetry = () => {
@@ -107,7 +136,7 @@ export default function Discussion() {
     // 토론 종료 확인 모달
     const EndConfirmModal = () => (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg max-w-md">
+            <div className="bg-white p-6 rounded-lg max-w-md mx-4">
                 <h3 className="text-xl font-bold mb-4">토론을 끝내시겠습니까?</h3>
                 <p className="text-gray-700 mb-4">
                     아직 충분한 토론이 이루어지지 않았습니다.
@@ -200,24 +229,41 @@ export default function Discussion() {
                         {/* 메시지 목록 (페이지네이션 적용) */}
                         <MessageList />
 
-                        {/* 입력 폼 */}
-                        <form onSubmit={handleSubmit} className="flex gap-2">
-                            <input
-                                type="text"
-                                value={inputMessage}
-                                onChange={(e) => setInputMessage(e.target.value)}
-                                placeholder="나의 토론 의견 작성:"
-                                className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4285F4]"
-                                disabled={isLoading}
-                            />
-                            <Button
-                                type="submit"
-                                variant="primary"
-                                disabled={isLoading || inputMessage.trim() === ''}
-                            >
-                                {isLoading ? '전송 중...' : '보내기'}
-                            </Button>
-                        </form>
+                        {/* 개선된 입력 폼 */}
+                        <div className="border-t border-gray-200 pt-4">
+                            <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+                                <div className="flex-1">
+                                    <textarea
+                                        ref={textareaRef}
+                                        value={inputMessage}
+                                        onChange={(e) => setInputMessage(e.target.value)}
+                                        onKeyDown={handleKeyDown}
+                                        placeholder="나의 토론 의견 작성... (Shift+Enter: 줄바꿈, Enter: 전송)"
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4285F4] resize-none transition-all duration-200 min-h-[48px]"
+                                        disabled={isLoading}
+                                        rows={1}
+                                    />
+                                    <div className="text-xs text-gray-500 mt-1">
+                                        Shift + Enter로 줄바꿈, Enter로 전송
+                                    </div>
+                                </div>
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    disabled={isLoading || inputMessage.trim() === ''}
+                                    className="px-6 py-3 shrink-0"
+                                >
+                                    {isLoading ? (
+                                        <div className="flex items-center gap-2">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                            전송 중
+                                        </div>
+                                    ) : (
+                                        '보내기'
+                                    )}
+                                </Button>
+                            </form>
+                        </div>
                     </Card>
 
                     {/* 에러 메시지 */}

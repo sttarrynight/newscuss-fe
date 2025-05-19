@@ -106,43 +106,51 @@ const MessageList = () => {
                 messages.map((message) => (
                     <div
                         key={message.id}
-                        className={`mb-4 ${
+                        className={`mb-4 flex ${
                             message.sender === 'user'
-                                ? 'text-right'
+                                ? 'justify-end'
                                 : message.sender === 'system'
-                                    ? 'text-center'
-                                    : ''
+                                    ? 'justify-center'
+                                    : 'justify-start'
                         }`}
                     >
+                        {/* AI 메시지 - 좌측 정렬 */}
                         {message.sender === 'ai' && (
-                            <div className="flex items-start">
-                                <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-2 flex-shrink-0">
+                            <div className="flex items-start max-w-3/4">
+                                <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">
                                     AI
                                 </div>
                                 <div className="flex flex-col">
-                                    <div className="bg-gray-100 p-3 rounded-lg max-w-3/4 inline-block text-left">
-                                        {message.text}
+                                    <div className="bg-gray-100 p-3 rounded-lg rounded-tl-none">
+                                        <p className="text-gray-800 whitespace-pre-wrap">{message.text}</p>
                                     </div>
-                                    <span className="message-time text-left">{message.time}</span>
+                                    <span className="message-time text-left mt-1">{message.time}</span>
                                 </div>
                             </div>
                         )}
 
+                        {/* 사용자 메시지 - 우측 정렬 */}
                         {message.sender === 'user' && (
-                            <div className="flex flex-col items-end">
-                                <div className="bg-[#4285F4] text-white p-3 rounded-lg max-w-3/4 inline-block">
-                                    {message.text}
+                            <div className="flex items-start max-w-3/4">
+                                <div className="flex flex-col">
+                                    <div className="bg-[#4285F4] text-white p-3 rounded-lg rounded-tr-none">
+                                        <p className="whitespace-pre-wrap text-left">{message.text}</p>
+                                    </div>
+                                    <span className="message-time text-right mt-1">{message.time}</span>
                                 </div>
-                                <span className="message-time">{message.time}</span>
+                                <div className="bg-gray-600 text-white rounded-full w-8 h-8 flex items-center justify-center ml-3 flex-shrink-0">
+                                    나
+                                </div>
                             </div>
                         )}
 
+                        {/* 시스템 메시지 - 중앙 정렬 */}
                         {message.sender === 'system' && (
-                            <div className="flex flex-col items-center">
-                                <div className="bg-gray-200 text-gray-700 p-2 rounded-lg inline-block">
-                                    {message.text}
+                            <div className="flex flex-col items-center max-w-2/3">
+                                <div className="bg-gray-200 text-gray-700 p-2 rounded-lg text-center">
+                                    <p className="text-sm">{message.text}</p>
                                 </div>
-                                <span className="message-time">{message.time}</span>
+                                <span className="message-time mt-1">{message.time}</span>
                             </div>
                         )}
                     </div>
@@ -155,13 +163,13 @@ const MessageList = () => {
             {/* 맨 아래로 스크롤 버튼 */}
             {!autoScrollEnabled && messages.length > 5 && (
                 <button
-                    className="fixed bottom-24 right-8 bg-[#4285F4] text-white rounded-full p-2 shadow-md"
+                    className="fixed bottom-24 right-8 bg-[#4285F4] text-white rounded-full p-3 shadow-lg hover:bg-[#3367d6] transition-colors"
                     onClick={() => {
                         messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
                         setAutoScrollEnabled(true);
                     }}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>

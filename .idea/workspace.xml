@@ -4,11 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="discussion, summary 페이지 리팩토링: 요약문 먼저 생성 후 summary 페이지에 전달 방식">
+    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="채팅 인터페이스 UI 개선">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/discussion/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/discussion/page.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/summary/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/summary/page.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/context/AppContext.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/context/AppContext.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/globals.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/discussion/MessageList.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/discussion/MessageList.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -109,7 +109,8 @@
       <workItem from="1746063031037" duration="8410000" />
       <workItem from="1746505856598" duration="2000" />
       <workItem from="1747547199942" duration="452000" />
-      <workItem from="1747547659123" duration="5931000" />
+      <workItem from="1747547659123" duration="6555000" />
+      <workItem from="1747646399434" duration="1073000" />
     </task>
     <task id="LOCAL-00001" summary="init newscuss-fe">
       <option name="closed" value="true" />
@@ -159,7 +160,15 @@
       <option name="project" value="LOCAL" />
       <updated>1745655717946</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="discussion, summary 페이지 리팩토링: 요약문 먼저 생성 후 summary 페이지에 전달 방식">
+      <option name="closed" value="true" />
+      <created>1747583105151</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1747583105151</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -184,6 +193,7 @@
     <MESSAGE value="Refactor API service to implement summary request timeout and enhance error handling with retry logic" />
     <MESSAGE value="Refactor API service to enhance summary request handling with improved error management and retry logic" />
     <MESSAGE value="discussion, summary 페이지 리팩토링: 요약문 먼저 생성 후 summary 페이지에 전달 방식" />
-    <option name="LAST_COMMIT_MESSAGE" value="discussion, summary 페이지 리팩토링: 요약문 먼저 생성 후 summary 페이지에 전달 방식" />
+    <MESSAGE value="채팅 인터페이스 UI 개선" />
+    <option name="LAST_COMMIT_MESSAGE" value="채팅 인터페이스 UI 개선" />
   </component>
 </project>
