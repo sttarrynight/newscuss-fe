@@ -14,6 +14,7 @@ export default function Discussion() {
     const searchParams = useSearchParams();
     const [inputMessage, setInputMessage] = useState('');
     const [showEndConfirm, setShowEndConfirm] = useState(false);
+    const [showSummaryLoading, setShowSummaryLoading] = useState(false); // 요약 로딩 상태
     const [retryCount, setRetryCount] = useState(0);
     const textareaRef = useRef(null);
 
@@ -134,12 +135,16 @@ export default function Discussion() {
         } else {
             // 백그라운드 요약 시작
             try {
+                setShowSummaryLoading(true); // 로딩 화면 표시
                 await startBackgroundSummary();
+                router.push('/summary');
             } catch (error) {
                 console.error('백그라운드 요약 시작 실패:', error);
                 // 요약 실패해도 Summary 페이지로 이동
+                router.push('/summary');
+            } finally {
+                setShowSummaryLoading(false);
             }
-            router.push('/summary');
         }
     };
 
@@ -163,13 +168,17 @@ export default function Discussion() {
                         variant="primary"
                         onClick={async () => {
                             setShowEndConfirm(false);
+                            setShowSummaryLoading(true); // 로딩 화면 표시
                             // 백그라운드 요약 시작
                             try {
                                 await startBackgroundSummary();
+                                router.push('/summary');
                             } catch (error) {
                                 console.error('백그라운드 요약 시작 실패:', error);
+                                router.push('/summary');
+                            } finally {
+                                setShowSummaryLoading(false);
                             }
-                            router.push('/summary');
                         }}
                     >
                         토론 종료하기
@@ -313,6 +322,42 @@ export default function Discussion() {
 
             {/* 토론 종료 확인 모달 (readonly 모드가 아닐 때만) */}
             {!isReadOnly && showEndConfirm && <EndConfirmModal />}
+
+            {/* 요약 중 로딩 화면 */}
+            {showSummaryLoading && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    {/* 투명한 배경 오버레이 */}
+                    <div className="absolute inset-0"></div>
+
+                    {/* 모달 컨텐츠 */}
+                    <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-200">
+                        <div className="text-center">
+                            <div className="mb-6">
+                                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#4285F4] mx-auto mb-4"></div>
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-3">토론 요약 생성 중</h3>
+                            <p className="text-gray-600 mb-4 text-sm">토론 내용을 분석하고 요약하고 있습니다...</p>
+
+                            {/* 진행률 표시 */}
+                            {summaryProgress > 0 && (
+                                <div className="mb-4">
+                                    <div className="bg-gray-200 rounded-full h-2 mb-2">
+                                        <div
+                                            className="bg-gradient-to-r from-[#4285F4] to-[#3367d6] h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${summaryProgress}%` }}
+                                        ></div>
+                                    </div>
+                                    <p className="text-sm font-bold text-[#4285F4]">{summaryProgress}% 완료</p>
+                                </div>
+                            )}
+
+                            <p className="text-xs text-gray-500">
+                                토론 내용이 길수록 더 오래 걸릴 수 있습니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

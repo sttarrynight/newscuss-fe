@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/common/Header';
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
+import FeedbackModal from '@/components/feedback/FeedbackModal';
 import { useAppContext } from '@/context/AppContext';
 
 export default function Summary() {
@@ -12,6 +13,7 @@ export default function Summary() {
     const [discussionSummary, setDiscussionSummary] = useState('');
     const [isFetchingSummary, setIsFetchingSummary] = useState(false);
     const [summaryError, setSummaryError] = useState('');
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false); // 피드백 모달 상태
 
     const {
         sessionId,
@@ -22,7 +24,12 @@ export default function Summary() {
         getCachedSummary,
         summaryStatus,
         summaryProgress,
-        startBackgroundSummary
+        startBackgroundSummary,
+        // 피드백 관련
+        feedbackData,
+        isFeedbackLoading,
+        feedbackError,
+        getFeedback
     } = useAppContext();
 
     // 세션이 없으면 홈으로 리다이렉트
@@ -118,6 +125,21 @@ export default function Summary() {
     // 읽기 전용으로 대화 내역 보기
     const handleViewMessages = () => {
         router.push('/discussion?readonly=true');
+    };
+
+    // 피드백 모달 열기
+    const handleShowFeedback = async () => {
+        setShowFeedbackModal(true);
+        
+        // 이미 피드백 데이터가 있으면 API 호출하지 않음
+        if (!feedbackData) {
+            try {
+                await getFeedback();
+            } catch (error) {
+                console.error('피드백 가져오기 실패:', error);
+                // 에러가 발생해도 모달은 열어서 에러 메시지를 표시
+            }
+        }
     };
 
     return (
@@ -228,6 +250,14 @@ export default function Summary() {
                                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                                     <Button
                                         variant="secondary"
+                                        onClick={handleShowFeedback}
+                                        className="flex-1 sm:flex-initial"
+                                    >
+                                        🎯 내 토론 점수 보기
+                                    </Button>
+
+                                    <Button
+                                        variant="secondary"
                                         onClick={handleViewMessages}
                                         className="flex-1 sm:flex-initial"
                                     >
@@ -254,6 +284,15 @@ export default function Summary() {
                         </>
                     )}
                 </Card>
+
+                {/* 피드백 모달 */}
+                <FeedbackModal
+                    isOpen={showFeedbackModal}
+                    onClose={() => setShowFeedbackModal(false)}
+                    feedbackData={feedbackData}
+                    isLoading={isFeedbackLoading}
+                    error={feedbackError}
+                />
             </main>
         </div>
     );

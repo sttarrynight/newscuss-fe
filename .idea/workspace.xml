@@ -4,11 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="채팅 인터페이스 UI 개선">
+    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="중복 함수 제거, 폴링 로직 단순화와 '토론 내용 다시보기' 기능 추가">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/discussion/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/discussion/page.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/summary/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/summary/page.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/discussion/MessageList.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/discussion/MessageList.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/context/AppContext.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/context/AppContext.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/apiService.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/apiService.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -178,7 +180,15 @@
       <option name="project" value="LOCAL" />
       <updated>1747648354131</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="중복 함수 제거, 폴링 로직 단순화와 '토론 내용 다시보기' 기능 추가">
+      <option name="closed" value="true" />
+      <created>1749432911287</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1749432911287</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -204,6 +214,7 @@
     <MESSAGE value="Refactor API service to enhance summary request handling with improved error management and retry logic" />
     <MESSAGE value="discussion, summary 페이지 리팩토링: 요약문 먼저 생성 후 summary 페이지에 전달 방식" />
     <MESSAGE value="채팅 인터페이스 UI 개선" />
-    <option name="LAST_COMMIT_MESSAGE" value="채팅 인터페이스 UI 개선" />
+    <MESSAGE value="중복 함수 제거, 폴링 로직 단순화와 '토론 내용 다시보기' 기능 추가" />
+    <option name="LAST_COMMIT_MESSAGE" value="중복 함수 제거, 폴링 로직 단순화와 '토론 내용 다시보기' 기능 추가" />
   </component>
 </project>

@@ -37,6 +37,11 @@ export function AppProvider({ children }) {
     const [summaryStatus, setSummaryStatus] = useState('PENDING'); // 'PENDING' | 'SUMMARIZING' | 'COMPLETED' | 'FAILED'
     const [summaryProgress, setSummaryProgress] = useState(0); // 0-100
     const [cachedSummary, setCachedSummary] = useState(''); // 캐시된 요약
+    
+    // 피드백 관련 상태 추가
+    const [feedbackData, setFeedbackData] = useState(null);
+    const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
+    const [feedbackError, setFeedbackError] = useState(null);
 
     // 세션 복원 (컴포넌트 마운트 시)
     useEffect(() => {
@@ -407,6 +412,42 @@ export function AppProvider({ children }) {
         return null;
     };
 
+    // 토론 피드백 가져오기
+    const getFeedback = async () => {
+        if (!sessionId) {
+            const error = new Error('세션이 유효하지 않습니다.');
+            setFeedbackError(error.message);
+            throw error;
+        }
+
+        setIsFeedbackLoading(true);
+        setFeedbackError(null);
+
+        try {
+            const response = await apiService.getFeedback(sessionId);
+            
+            // 피드백 데이터 검증
+            if (!response.feedback) {
+                throw new Error('피드백 데이터를 받지 못했습니다.');
+            }
+
+            setFeedbackData(response.feedback);
+            return response.feedback;
+        } catch (err) {
+            const normalizedError = normalizeError(err);
+            setFeedbackError(normalizedError.message);
+
+            if (isSessionExpiredError(err)) {
+                resetSession();
+            }
+
+            logError(err, 'AppContext.getFeedback');
+            throw normalizedError;
+        } finally {
+            setIsFeedbackLoading(false);
+        }
+    };
+
     // 세션 초기화
     const resetSession = () => {
         setSessionId(null);
@@ -424,6 +465,11 @@ export function AppProvider({ children }) {
         setSummaryStatus('PENDING');
         setSummaryProgress(0);
         setCachedSummary('');
+        
+        // 피드백 관련 상태 초기화
+        setFeedbackData(null);
+        setIsFeedbackLoading(false);
+        setFeedbackError(null);
 
         // 세션 스토리지 초기화
         clearSessionFromStorage();
@@ -447,6 +493,9 @@ export function AppProvider({ children }) {
         summaryStatus,
         summaryProgress,
         cachedSummary,
+        feedbackData,
+        isFeedbackLoading,
+        feedbackError,
 
         // 액션 함수
         submitUrl,
@@ -457,6 +506,7 @@ export function AppProvider({ children }) {
         resetSession,
         startBackgroundSummary,
         getCachedSummary,
+        getFeedback,
 
         // 상태 설정 함수
         setUserPosition,
