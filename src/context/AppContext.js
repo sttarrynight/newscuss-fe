@@ -206,12 +206,15 @@ export function AppProvider({ children }) {
 
             setAiPosition(response.aiPosition);
 
-            // AI의 첫 메시지 추가
+            // AI의 첫 메시지 추가 (현재 시간 사용)
+            const now = new Date();
+            const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+
             const aiMessage = {
-                id: 1,
+                id: Date.now(),
                 sender: 'ai',
                 text: response.aiMessage,
-                time: getCurrentTime()
+                time: timeString
             };
 
             setMessages([aiMessage]);
@@ -251,12 +254,16 @@ export function AppProvider({ children }) {
         setIsLoading(true);
         setError(null);
 
+        // 현재 시간 생성
+        const now = new Date();
+        const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+
         // 사용자 메시지 추가
         const userMessage = {
             id: Date.now(),
             sender: 'user',
             text,
-            time: getCurrentTime()
+            time: timeString
         };
 
         // 메시지 목록 업데이트
@@ -276,7 +283,7 @@ export function AppProvider({ children }) {
                 id: Date.now() + 1,
                 sender: 'ai',
                 text: response.aiMessage,
-                time: getCurrentTime()
+                time: timeString
             };
 
             // 최종 메시지 목록 업데이트
@@ -334,71 +341,6 @@ export function AppProvider({ children }) {
             logError(err, 'AppContext.loadMoreMessages');
         }
     }, [currentPage, messages.length]);
-
-    // 토론 요약 가져오기 - 단순화된 버전
-    const getSummary = async () => {
-        if (!sessionId) {
-            const error = new Error('세션이 유효하지 않습니다.');
-            setError(error.message);
-            throw error;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const summary = await apiService.getSummary(sessionId);
-
-            // 요약 결과 검증
-            if (!summary || summary.trim().length < 20) {
-                throw new Error('생성된 요약이 너무 짧습니다. 다시 시도해주세요.');
-            }
-
-            // 요약 결과 저장
-            updateSessionInStorage({
-                discussionSummary: summary
-            });
-
-            return summary;
-        } catch (err) {
-            const normalizedError = normalizeError(err);
-            setError(normalizedError.message);
-
-            if (isSessionExpiredError(err)) {
-                resetSession();
-            }
-
-            logError(err, 'AppContext.getSummary');
-            throw normalizedError;
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // 세션 초기화
-    const resetSession = () => {
-        setSessionId(null);
-        setKeywords([]);
-        setSummary('');
-        setTopic('');
-        setTopicDescription('');
-        setUserPosition(null);
-        setAiPosition(null);
-        setDifficulty('medium');
-        setMessages([]);
-        setError(null);
-        setCurrentPage(1);
-        setHasMoreMessages(false);
-
-        // 세션 스토리지 초기화
-        clearSessionFromStorage();
-    };
-
-    // 현재 시간 문자열 반환
-    const getCurrentTime = () => {
-        const now = new Date();
-        return `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-    };
 
     // 백그라운드 요약 시작 함수
     const startBackgroundSummary = async () => {
@@ -465,6 +407,28 @@ export function AppProvider({ children }) {
         return null;
     };
 
+    // 세션 초기화
+    const resetSession = () => {
+        setSessionId(null);
+        setKeywords([]);
+        setSummary('');
+        setTopic('');
+        setTopicDescription('');
+        setUserPosition(null);
+        setAiPosition(null);
+        setDifficulty('medium');
+        setMessages([]);
+        setError(null);
+        setCurrentPage(1);
+        setHasMoreMessages(false);
+        setSummaryStatus('PENDING');
+        setSummaryProgress(0);
+        setCachedSummary('');
+
+        // 세션 스토리지 초기화
+        clearSessionFromStorage();
+    };
+
     // 제공할 컨텍스트 값
     const contextValue = {
         // 상태
@@ -490,7 +454,6 @@ export function AppProvider({ children }) {
         startDiscussion,
         sendMessage,
         loadMoreMessages,
-        getSummary,
         resetSession,
         startBackgroundSummary,
         getCachedSummary,
