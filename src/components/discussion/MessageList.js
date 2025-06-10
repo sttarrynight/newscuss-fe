@@ -157,6 +157,29 @@ const MessageList = () => {
                 ))
             )}
 
+            {/* AI 답변 대기 중 표시 */}
+            {isLoading && (
+                <div className="mb-4 flex justify-start">
+                    <div className="flex items-start max-w-3/4">
+                        <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">
+                            AI
+                        </div>
+                        <div className="flex flex-col">
+                            <div className="bg-gray-100 p-3 rounded-lg rounded-tl-none">
+                                <div className="flex items-center space-x-1">
+                                    <span className="text-gray-600">입력중</span>
+                                    <div className="flex space-x-1">
+                                        <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                                        <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                                        <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* 자동 스크롤을 위한 참조 요소 */}
             <div ref={messageEndRef} />
 

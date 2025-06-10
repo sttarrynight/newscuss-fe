@@ -241,6 +241,13 @@ const apiService = {
     },
 
     /**
+     * 토론 피드백 요청
+     */
+    getFeedback: async (sessionId) => {
+        return apiRequest(`/discussion/feedback/${sessionId}`);
+    },
+
+    /**
      * 세션 상태 확인 (디버깅용)
      */
     checkSession: async (sessionId) => {

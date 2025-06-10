@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/common/Header';
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
+import FeedbackModal from '@/components/feedback/FeedbackModal';
 import { useAppContext } from '@/context/AppContext';
 
 export default function Summary() {
@@ -12,7 +13,7 @@ export default function Summary() {
     const [discussionSummary, setDiscussionSummary] = useState('');
     const [isFetchingSummary, setIsFetchingSummary] = useState(false);
     const [summaryError, setSummaryError] = useState('');
-    const [fetchAttempted, setFetchAttempted] = useState(false); // 중요: 한 번만 시도
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false); // 피드백 모달 상태
 
     const {
         sessionId,
@@ -20,12 +21,15 @@ export default function Summary() {
         userPosition,
         aiPosition,
         resetSession,
-        error,
-        // 새로 추가
         getCachedSummary,
         summaryStatus,
         summaryProgress,
-        startBackgroundSummary
+        startBackgroundSummary,
+        // 피드백 관련
+        feedbackData,
+        isFeedbackLoading,
+        feedbackError,
+        getFeedback
     } = useAppContext();
 
     // 세션이 없으면 홈으로 리다이렉트
@@ -35,67 +39,80 @@ export default function Summary() {
             return;
         }
 
-        // 즉시 캐시된 요약 확인
-        const cachedSummary = getCachedSummary();
-        if (cachedSummary) {
-            setDiscussionSummary(cachedSummary);
-            setIsFetchingSummary(false);
-            return;
-        }
+        // 캐시된 요약 확인 및 처리
+        const initializeSummary = async () => {
+            const cachedSummary = getCachedSummary();
 
-        // 캐시된 요약이 없고 현재 요약 중인 경우
-        if (summaryStatus === 'SUMMARIZING') {
-            setIsFetchingSummary(true);
-            // 요약 완료를 기다리는 폴링 로직
-            const pollForSummary = setInterval(() => {
-                const newCachedSummary = getCachedSummary();
-                if (newCachedSummary) {
-                    setDiscussionSummary(newCachedSummary);
-                    setIsFetchingSummary(false);
-                    clearInterval(pollForSummary);
-                }
-            }, 1000);
+            if (cachedSummary) {
+                // 이미 완료된 요약이 있으면 바로 표시
+                setDiscussionSummary(cachedSummary);
+                setIsFetchingSummary(false);
+                return;
+            }
 
-            // 30초 후 타임아웃
-            setTimeout(() => {
-                clearInterval(pollForSummary);
-                if (!discussionSummary) {
-                    setIsFetchingSummary(false);
-                    setSummaryError('요약 생성 시간이 초과되었습니다.');
-                }
-            }, 30000);
+            if (summaryStatus === 'SUMMARIZING') {
+                // 현재 요약 중이면 대기 상태로 설정
+                setIsFetchingSummary(true);
 
-            return () => clearInterval(pollForSummary);
-        }
+                // 간단한 폴링으로 완료 대기 (5초마다 확인, 최대 60초)
+                let attempts = 0;
+                const maxAttempts = 12; // 60초 / 5초
 
-        // 캐시된 요약이 없으면 한 번만 시도
-        if (!fetchAttempted && summaryStatus !== 'COMPLETED') {
-            setFetchAttempted(true);
-            setIsFetchingSummary(true);
-            setSummaryError('');
+                const checkSummary = setInterval(() => {
+                    const newCachedSummary = getCachedSummary();
+                    attempts++;
 
-            startBackgroundSummary()
-                .then(summary => {
+                    if (newCachedSummary) {
+                        setDiscussionSummary(newCachedSummary);
+                        setIsFetchingSummary(false);
+                        clearInterval(checkSummary);
+                    } else if (attempts >= maxAttempts) {
+                        setIsFetchingSummary(false);
+                        setSummaryError('요약 생성 시간이 초과되었습니다.');
+                        clearInterval(checkSummary);
+                    }
+                }, 5000);
+
+                return () => clearInterval(checkSummary);
+            }
+
+            if (summaryStatus === 'PENDING' || summaryStatus === 'FAILED') {
+                // 요약이 아직 시작되지 않았거나 실패한 경우 시작
+                setIsFetchingSummary(true);
+                setSummaryError('');
+
+                try {
+                    const summary = await startBackgroundSummary();
                     setDiscussionSummary(summary);
-                })
-                .catch(error => {
+                } catch (error) {
                     console.error('토론 요약 가져오기 실패:', error);
                     setSummaryError(error.message || '토론 요약을 가져오는 중 오류가 발생했습니다.');
-                })
-                .finally(() => {
+                } finally {
                     setIsFetchingSummary(false);
-                });
-        }
-    }, [sessionId, router, fetchAttempted, summaryStatus, getCachedSummary, startBackgroundSummary, discussionSummary]);
+                }
+            }
+        };
+
+        initializeSummary();
+    }, [sessionId, router, summaryStatus, getCachedSummary, startBackgroundSummary]);
 
     // 수동 재시도 핸들러
-    const handleRetry = () => {
-        setFetchAttempted(false); // 재시도 플래그 리셋
+    const handleRetry = async () => {
         setSummaryError('');
         setDiscussionSummary('');
+        setIsFetchingSummary(true);
+
+        try {
+            const summary = await startBackgroundSummary();
+            setDiscussionSummary(summary);
+        } catch (error) {
+            console.error('재시도 실패:', error);
+            setSummaryError(error.message || '토론 요약을 가져오는 중 오류가 발생했습니다.');
+        } finally {
+            setIsFetchingSummary(false);
+        }
     };
 
-    // 나머지 핸들러들은 동일...
     const handleChangePosition = () => {
         router.push('/topic-selection');
     };
@@ -105,8 +122,24 @@ export default function Summary() {
         router.push('/');
     };
 
+    // 읽기 전용으로 대화 내역 보기
     const handleViewMessages = () => {
-        router.push('/discussion');
+        router.push('/discussion?readonly=true');
+    };
+
+    // 피드백 모달 열기
+    const handleShowFeedback = async () => {
+        setShowFeedbackModal(true);
+        
+        // 이미 피드백 데이터가 있으면 API 호출하지 않음
+        if (!feedbackData) {
+            try {
+                await getFeedback();
+            } catch (error) {
+                console.error('피드백 가져오기 실패:', error);
+                // 에러가 발생해도 모달은 열어서 에러 메시지를 표시
+            }
+        }
     };
 
     return (
@@ -126,6 +159,7 @@ export default function Summary() {
                         <div className="flex flex-col justify-center items-center py-10">
                             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#4285F4] mb-4"></div>
                             <p className="text-gray-600 text-center">토론 내용을 요약하고 있습니다...</p>
+
                             {summaryStatus === 'SUMMARIZING' && summaryProgress > 0 && (
                                 <div className="w-full max-w-md mt-4">
                                     <div className="bg-gray-200 rounded-full h-2">
@@ -137,6 +171,7 @@ export default function Summary() {
                                     <p className="text-sm text-gray-500 mt-2 text-center">{summaryProgress}% 완료</p>
                                 </div>
                             )}
+
                             <p className="text-sm text-gray-500 mt-2">
                                 토론 내용이 길수록 더 오래 걸릴 수 있습니다.
                             </p>
@@ -157,7 +192,7 @@ export default function Summary() {
                                     onClick={handleViewMessages}
                                     className="flex-1 sm:flex-initial"
                                 >
-                                    메시지 직접 확인
+                                    대화 내역 보기
                                 </Button>
                                 <Button
                                     variant="secondary"
@@ -214,6 +249,22 @@ export default function Summary() {
 
                                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                                     <Button
+                                        variant="secondary"
+                                        onClick={handleShowFeedback}
+                                        className="flex-1 sm:flex-initial"
+                                    >
+                                        🎯 내 토론 점수 보기
+                                    </Button>
+
+                                    <Button
+                                        variant="secondary"
+                                        onClick={handleViewMessages}
+                                        className="flex-1 sm:flex-initial"
+                                    >
+                                        토론 대화 다시보기
+                                    </Button>
+
+                                    <Button
                                         variant="primary"
                                         onClick={handleChangePosition}
                                         className="flex-1 sm:flex-initial"
@@ -233,6 +284,15 @@ export default function Summary() {
                         </>
                     )}
                 </Card>
+
+                {/* 피드백 모달 */}
+                <FeedbackModal
+                    isOpen={showFeedbackModal}
+                    onClose={() => setShowFeedbackModal(false)}
+                    feedbackData={feedbackData}
+                    isLoading={isFeedbackLoading}
+                    error={feedbackError}
+                />
             </main>
         </div>
     );

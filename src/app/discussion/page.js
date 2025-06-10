@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/components/common/Header';
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
@@ -11,10 +11,15 @@ import { useAppContext } from '@/context/AppContext';
 
 export default function Discussion() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [inputMessage, setInputMessage] = useState('');
     const [showEndConfirm, setShowEndConfirm] = useState(false);
+    const [showSummaryLoading, setShowSummaryLoading] = useState(false); // 요약 로딩 상태
     const [retryCount, setRetryCount] = useState(0);
     const textareaRef = useRef(null);
+
+    // readonly 모드 확인
+    const isReadOnly = searchParams.get('readonly') === 'true';
 
     const {
         sessionId,
@@ -41,9 +46,9 @@ export default function Discussion() {
         }
     }, [sessionId, topic, userPosition, router]);
 
-    // textarea 자동 높이 조절
+    // textarea 자동 높이 조절 (readonly 모드가 아닐 때만)
     useEffect(() => {
-        if (textareaRef.current) {
+        if (!isReadOnly && textareaRef.current) {
             // 높이 초기화
             textareaRef.current.style.height = 'auto';
 
@@ -59,11 +64,11 @@ export default function Discussion() {
                 textareaRef.current.style.overflow = 'auto';
             }
         }
-    }, [inputMessage]);
+    }, [inputMessage, isReadOnly]);
 
-    // 엔터키 처리 (Shift+Enter는 줄바꿈, Enter는 전송)
+    // 엔터키 처리 (Shift+Enter는 줄바꿈, Enter는 전송) - readonly 모드가 아닐 때만
     const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (!isReadOnly && e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSubmit(e);
         }
@@ -81,11 +86,11 @@ export default function Discussion() {
         router.push('/');
     };
 
-    // 메시지 제출 처리
+    // 메시지 제출 처리 (readonly 모드가 아닐 때만)
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (inputMessage.trim() === '') return;
+        if (isReadOnly || inputMessage.trim() === '') return;
 
         try {
             await sendMessage(inputMessage);
@@ -95,8 +100,14 @@ export default function Discussion() {
         }
     };
 
-    // 토론 종료 처리
+    // 토론 종료 처리 (readonly 모드가 아닐 때만)
     const handleEndDiscussion = async () => {
+        if (isReadOnly) {
+            // readonly 모드에서는 Summary 페이지로 바로 이동
+            router.push('/summary');
+            return;
+        }
+
         if (retryCount > 0) {
             // 이미 오류가 발생했던 경우 확인 없이 바로 이동
             router.push('/summary');
@@ -124,16 +135,20 @@ export default function Discussion() {
         } else {
             // 백그라운드 요약 시작
             try {
+                setShowSummaryLoading(true); // 로딩 화면 표시
                 await startBackgroundSummary();
+                router.push('/summary');
             } catch (error) {
                 console.error('백그라운드 요약 시작 실패:', error);
                 // 요약 실패해도 Summary 페이지로 이동
+                router.push('/summary');
+            } finally {
+                setShowSummaryLoading(false);
             }
-            router.push('/summary');
         }
     };
 
-    // 토론 종료 확인 모달
+    // 토론 종료 확인 모달 (readonly 모드가 아닐 때만)
     const EndConfirmModal = () => (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg max-w-md mx-4">
@@ -153,13 +168,17 @@ export default function Discussion() {
                         variant="primary"
                         onClick={async () => {
                             setShowEndConfirm(false);
+                            setShowSummaryLoading(true); // 로딩 화면 표시
                             // 백그라운드 요약 시작
                             try {
                                 await startBackgroundSummary();
+                                router.push('/summary');
                             } catch (error) {
                                 console.error('백그라운드 요약 시작 실패:', error);
+                                router.push('/summary');
+                            } finally {
+                                setShowSummaryLoading(false);
                             }
-                            router.push('/summary');
                         }}
                     >
                         토론 종료하기
@@ -199,6 +218,15 @@ export default function Discussion() {
                     <span className="text-sm">AI</span>
                 </div>
             </div>
+
+            {/* readonly 모드 표시 */}
+            {isReadOnly && (
+                <div className="mt-4 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-700 text-center">
+                        📖 읽기 전용 모드 - 대화 내역만 확인할 수 있습니다
+                    </p>
+                </div>
+            )}
         </Card>
     );
 
@@ -206,13 +234,15 @@ export default function Discussion() {
         <div className="min-h-screen bg-[#E8F0FE] flex flex-col">
             <Header
                 showNav={true}
-                backUrl="/topic-selection"
+                backUrl={isReadOnly ? "/summary" : "/topic-selection"}
                 nextText={
-                    summaryStatus === 'SUMMARIZING'
-                        ? `요약 중... ${summaryProgress}%`
-                        : summaryStatus === 'COMPLETED'
-                            ? '요약 완료 - 확인하기'
-                            : '끝내기'
+                    isReadOnly
+                        ? "요약으로 돌아가기"
+                        : summaryStatus === 'SUMMARIZING'
+                            ? `요약 중... ${summaryProgress}%`
+                            : summaryStatus === 'COMPLETED'
+                                ? '요약 완료 - 확인하기'
+                                : '끝내기'
                 }
                 onNext={handleEndDiscussion}
             />
@@ -229,45 +259,56 @@ export default function Discussion() {
                         {/* 메시지 목록 (페이지네이션 적용) */}
                         <MessageList />
 
-                        {/* 개선된 입력 폼 */}
-                        <div className="border-t border-gray-200 pt-4">
-                            <form onSubmit={handleSubmit} className="flex gap-3 items-end">
-                                <div className="flex-1">
-                                    <textarea
-                                        ref={textareaRef}
-                                        value={inputMessage}
-                                        onChange={(e) => setInputMessage(e.target.value)}
-                                        onKeyDown={handleKeyDown}
-                                        placeholder="나의 토론 의견 작성... (Shift+Enter: 줄바꿈, Enter: 전송)"
-                                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4285F4] resize-none transition-all duration-200 min-h-[48px]"
-                                        disabled={isLoading}
-                                        rows={1}
-                                    />
-                                    <div className="text-xs text-gray-500 mt-1">
-                                        Shift + Enter로 줄바꿈, Enter로 전송
-                                    </div>
-                                </div>
-                                <Button
-                                    type="submit"
-                                    variant="primary"
-                                    disabled={isLoading || inputMessage.trim() === ''}
-                                    className="px-6 py-3 shrink-0"
-                                >
-                                    {isLoading ? (
-                                        <div className="flex items-center gap-2">
-                                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                                            전송 중
+                        {/* 입력 폼 (readonly 모드가 아닐 때만 표시) */}
+                        {!isReadOnly && (
+                            <div className="border-t border-gray-200 pt-4">
+                                <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+                                    <div className="flex-1">
+                                        <textarea
+                                            ref={textareaRef}
+                                            value={inputMessage}
+                                            onChange={(e) => setInputMessage(e.target.value)}
+                                            onKeyDown={handleKeyDown}
+                                            placeholder="나의 토론 의견 작성... (Shift+Enter: 줄바꿈, Enter: 전송)"
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4285F4] resize-none transition-all duration-200 min-h-[48px]"
+                                            disabled={isLoading}
+                                            rows={1}
+                                        />
+                                        <div className="text-xs text-gray-500 mt-1">
+                                            Shift + Enter로 줄바꿈, Enter로 전송
                                         </div>
-                                    ) : (
-                                        '보내기'
-                                    )}
-                                </Button>
-                            </form>
-                        </div>
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        variant="primary"
+                                        disabled={isLoading || inputMessage.trim() === ''}
+                                        className="px-6 py-3 shrink-0"
+                                    >
+                                        {isLoading ? (
+                                            <div className="flex items-center gap-2">
+                                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                                전송 중
+                                            </div>
+                                        ) : (
+                                            '보내기'
+                                        )}
+                                    </Button>
+                                </form>
+                            </div>
+                        )}
+
+                        {/* readonly 모드일 때 안내 메시지 */}
+                        {isReadOnly && (
+                            <div className="border-t border-gray-200 pt-4 text-center">
+                                <p className="text-gray-500 text-sm">
+                                    읽기 전용 모드입니다. 토론을 계속하려면 입장 바꾸기를 이용해주세요.
+                                </p>
+                            </div>
+                        )}
                     </Card>
 
-                    {/* 에러 메시지 */}
-                    {error && (
+                    {/* 에러 메시지 (readonly 모드가 아닐 때만) */}
+                    {!isReadOnly && error && (
                         <ErrorHandler
                             error={error}
                             errorType={ERROR_TYPES.API}
@@ -279,8 +320,44 @@ export default function Discussion() {
                 </div>
             </main>
 
-            {/* 토론 종료 확인 모달 */}
-            {showEndConfirm && <EndConfirmModal />}
+            {/* 토론 종료 확인 모달 (readonly 모드가 아닐 때만) */}
+            {!isReadOnly && showEndConfirm && <EndConfirmModal />}
+
+            {/* 요약 중 로딩 화면 */}
+            {showSummaryLoading && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    {/* 투명한 배경 오버레이 */}
+                    <div className="absolute inset-0"></div>
+
+                    {/* 모달 컨텐츠 */}
+                    <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-200">
+                        <div className="text-center">
+                            <div className="mb-6">
+                                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#4285F4] mx-auto mb-4"></div>
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-3">토론 요약 생성 중</h3>
+                            <p className="text-gray-600 mb-4 text-sm">토론 내용을 분석하고 요약하고 있습니다...</p>
+
+                            {/* 진행률 표시 */}
+                            {summaryProgress > 0 && (
+                                <div className="mb-4">
+                                    <div className="bg-gray-200 rounded-full h-2 mb-2">
+                                        <div
+                                            className="bg-gradient-to-r from-[#4285F4] to-[#3367d6] h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${summaryProgress}%` }}
+                                        ></div>
+                                    </div>
+                                    <p className="text-sm font-bold text-[#4285F4]">{summaryProgress}% 완료</p>
+                                </div>
+                            )}
+
+                            <p className="text-xs text-gray-500">
+                                토론 내용이 길수록 더 오래 걸릴 수 있습니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
