@@ -1,8 +1,8 @@
 import { logError, normalizeError, isNetworkError } from '@/utils/errorUtils';
 
 /**
-* API 서비스 설정
-*/
+ * API 서비스 설정
+ */
 const API_CONFIG = {
     // 기본 URL (환경 변수에서 가져오거나 기본값 사용)
     BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api',
@@ -10,6 +10,7 @@ const API_CONFIG = {
     // 타임아웃 설정 (밀리초)
     TIMEOUT: 30000,
     SUMMARY_TIMEOUT: 60000, // 요약 요청은 더 긴 타임아웃 적용
+    STREAM_TIMEOUT: 120000, // 스트리밍은 더 긴 타임아웃 적용
 
     // 재시도 설정
     RETRY: {
@@ -101,6 +102,171 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
 };
 
 /**
+ * 스트리밍 메시지 전송 함수 (누적 관리 강화 버전)
+ */
+const sendMessageStream = (sessionId, message, onChunk, onComplete, onError) => {
+    console.log('🚀 스트리밍 시작 (누적 관리 강화):', { sessionId, message });
+
+    return new Promise((resolve, reject) => {
+        let isCompleted = false;
+        let accumulatedMessage = ''; // 여기서 직접 관리
+
+        // 타임아웃 설정
+        const timeoutId = setTimeout(() => {
+            if (!isCompleted) {
+                isCompleted = true;
+                console.error('⏰ 스트리밍 타임아웃');
+                const timeoutError = new Error('스트리밍 요청 시간이 초과되었습니다.');
+                logError(timeoutError, 'sendMessageStream.timeout');
+                if (onError) onError(timeoutError);
+                reject(timeoutError);
+            }
+        }, API_CONFIG.STREAM_TIMEOUT);
+
+        // fetch를 사용한 스트리밍
+        console.log('📡 fetch 요청 시작:', `${API_CONFIG.BASE_URL}/discussion/message/stream`);
+
+        fetch(`${API_CONFIG.BASE_URL}/discussion/message/stream`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'text/event-stream',
+            },
+            body: JSON.stringify({
+                sessionId: sessionId,
+                message: message
+            })
+        })
+            .then(response => {
+                console.log('📥 응답 받음:', response.status, response.statusText);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                if (!response.body) {
+                    throw new Error('응답 본문이 없습니다.');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                function readStream() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done || isCompleted) {
+                            console.log('✅ 스트림 완료 (done):', done, 'isCompleted:', isCompleted);
+                            if (!isCompleted) {
+                                isCompleted = true;
+                                clearTimeout(timeoutId);
+                                console.log('📝 최종 누적 메시지:', accumulatedMessage);
+                                if (onComplete) onComplete(accumulatedMessage);
+                                resolve(accumulatedMessage);
+                            }
+                            return;
+                        }
+
+                        const chunk = decoder.decode(value, { stream: true });
+                        console.log('📦 청크 받음:', chunk);
+
+                        // 각 라인 처리
+                        const lines = chunk.split('\n');
+
+                        for (const line of lines) {
+                            if (line.trim() === '') continue;
+
+                            console.log('📄 라인 처리:', line);
+
+                            // JSON 데이터 추출 (data: 접두사 있든 없든)
+                            let jsonData = '';
+                            if (line.startsWith('data: ')) {
+                                jsonData = line.substring(6).trim();
+                            } else if (line.startsWith('{') && line.includes('"type"')) {
+                                jsonData = line.trim();
+                            } else if (line.startsWith('event:')) {
+                                console.log('📡 이벤트 라인 스킵:', line);
+                                continue;
+                            } else {
+                                console.log('❓ 알 수 없는 라인:', line);
+                                continue;
+                            }
+
+                            if (jsonData === '' || jsonData === '{}') {
+                                console.log('⚪ 빈 데이터, 스킵');
+                                continue;
+                            }
+
+                            try {
+                                const data = JSON.parse(jsonData);
+                                console.log('✅ 파싱된 데이터:', data);
+
+                                if (data.type === 'chunk') {
+                                    console.log('🔤 청크 내용:', data.content);
+                                    // 여기서 직접 누적 관리
+                                    accumulatedMessage += data.content;
+                                    console.log('📝 현재 누적:', accumulatedMessage);
+                                    console.log('🎯 onChunk 콜백 호출 시도...', typeof onChunk);
+
+                                    if (onChunk) {
+                                        console.log('✅ onChunk 콜백 호출!');
+                                        onChunk(data.content, accumulatedMessage);
+                                        console.log('✅ onChunk 콜백 완료!');
+                                    } else {
+                                        console.error('❌ onChunk 콜백이 없습니다!');
+                                    }
+                                } else if (data.type === 'end') {
+                                    console.log('🏁 종료 신호 받음');
+                                    isCompleted = true;
+                                    clearTimeout(timeoutId);
+
+                                    // final_message가 있으면 사용, 없으면 누적된 메시지 사용
+                                    const finalMessage = data.final_message || accumulatedMessage;
+                                    console.log('📝 최종 메시지:', finalMessage);
+
+                                    if (onComplete) {
+                                        onComplete(finalMessage);
+                                    }
+                                    resolve(finalMessage);
+                                    return;
+                                } else if (data.type === 'error') {
+                                    console.error('❌ 에러 신호 받음:', data);
+                                    isCompleted = true;
+                                    clearTimeout(timeoutId);
+
+                                    const error = new Error(data.message || '스트리밍 중 오류가 발생했습니다.');
+                                    logError(error, 'sendMessageStream.streamError');
+                                    if (onError) onError(error);
+                                    reject(error);
+                                    return;
+                                } else {
+                                    console.log('❓ 알 수 없는 타입:', data.type);
+                                }
+                            } catch (parseError) {
+                                console.error('🚫 JSON 파싱 오류:', parseError, '원본:', jsonData);
+                            }
+                        }
+
+                        return readStream();
+                    });
+                }
+
+                return readStream();
+            })
+            .catch(error => {
+                console.error('💥 fetch 에러:', error);
+                if (!isCompleted) {
+                    isCompleted = true;
+                    clearTimeout(timeoutId);
+
+                    const streamError = new Error(`스트리밍 연결 오류: ${error.message}`);
+                    logError(streamError, 'sendMessageStream.connectionError');
+                    if (onError) onError(streamError);
+                    reject(streamError);
+                }
+            });
+    });
+};
+
+/**
  * API 서비스 객체 - 애플리케이션에서 사용할 API 함수들을 포함
  */
 const apiService = {
@@ -140,7 +306,7 @@ const apiService = {
     },
 
     /**
-     * 토론 메시지 전송
+     * 토론 메시지 전송 (기존 방식 - 백업용)
      */
     sendMessage: async (sessionId, message) => {
         return apiRequest('/discussion/message', {
@@ -151,6 +317,11 @@ const apiService = {
             }),
         });
     },
+
+    /**
+     * 토론 메시지 전송 (스트리밍 방식) - 새로 추가
+     */
+    sendMessageStream: sendMessageStream,
 
     /**
      * 토론 요약 요청
