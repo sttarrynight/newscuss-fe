@@ -39,6 +39,11 @@ export default function Discussion() {
         summaryProgress
     } = useAppContext();
 
+    // 입장별 색상 결정 함수
+    const getPositionColor = (position) => {
+        return position === '찬성' ? 'text-blue-500' : 'text-red-500';
+    };
+
     // 세션이 없으면 홈으로 리다이렉트
     useEffect(() => {
         if (!sessionId || !topic || !userPosition) {
@@ -188,7 +193,7 @@ export default function Discussion() {
         </div>
     );
 
-    // 토론 정보 컴포넌트
+    // 토론 정보 컴포넌트 (색상 개선)
     const DiscussionInfo = () => (
         <Card className="mb-6">
             <h2 className="font-bold mb-2">토론 주제</h2>
@@ -210,11 +215,15 @@ export default function Discussion() {
 
             <div className="flex justify-between bg-gray-100 p-3 rounded-lg">
                 <div>
-                    <span className="font-bold text-blue-500 block">{userPosition}</span>
+                    <span className={`font-bold block ${getPositionColor(userPosition)}`}>
+                        {userPosition}
+                    </span>
                     <span className="text-sm">사용자</span>
                 </div>
                 <div className="text-right">
-                    <span className="font-bold text-red-500 block">{aiPosition}</span>
+                    <span className={`font-bold block ${getPositionColor(aiPosition)}`}>
+                        {aiPosition}
+                    </span>
                     <span className="text-sm">AI</span>
                 </div>
             </div>
