@@ -43,11 +43,18 @@ export function AppProvider({ children }) {
     const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
     const [feedbackError, setFeedbackError] = useState(null);
 
-    // 스트리밍 관련 상태 추가
+    // 스트리밍 관련 상태 개선
     const [isStreaming, setIsStreaming] = useState(false);
     const [streamingMessageId, setStreamingMessageId] = useState(null);
     const [, forceUpdate] = useState({});
     const forceUpdateRef = useRef(() => forceUpdate({}));
+
+    // 스트리밍 상태 관리를 위한 ref
+    const streamingStateRef = useRef({
+        isActive: false,
+        messageId: null,
+        accumulatedText: ''
+    });
 
     // 세션 복원 (컴포넌트 마운트 시)
     useEffect(() => {
@@ -254,7 +261,7 @@ export function AppProvider({ children }) {
         }
     };
 
-    // 메시지 전송 (스트리밍 방식으로 변경)
+    // 메시지 전송 (스트리밍 방식 개선)
     const sendMessage = async (text) => {
         if (!sessionId) {
             const error = new Error('세션이 유효하지 않습니다.');
@@ -293,46 +300,60 @@ export function AppProvider({ children }) {
         setStreamingMessageId(aiMessageId);
         setIsStreaming(true);
 
+        // 스트리밍 상태 초기화
+        streamingStateRef.current = {
+            isActive: true,
+            messageId: aiMessageId,
+            accumulatedText: ''
+        };
+
         // 세션 스토리지 메시지 업데이트 (스트리밍 메시지 제외)
         updateSessionInStorage({
             messages: [...messages, userMessage]
         });
 
         try {
-            console.log('🚀 간단 스트리밍 시작');
+            console.log('🚀 최적화된 스트리밍 시작');
 
-            // 스트리밍 방식으로 메시지 전송
             await apiService.sendMessageStream(
                 sessionId,
                 text,
-                // onChunk: 청크 데이터가 올 때마다 호출
-                (chunk, accumulated) => {
-                    console.log('🎯 AppContext onChunk 호출됨!');
-                    console.log('✅ 청크 받음:', chunk);
-                    console.log('📝 누적 메시지:', accumulated);
-                    console.log('🆔 AI 메시지 ID:', aiMessageId);
+                // onChunk: 청크만 받아서 누적 처리
+                (chunk) => {
+                    // 스트리밍 상태가 여전히 활성화되어 있는지 확인
+                    if (!streamingStateRef.current.isActive || streamingStateRef.current.messageId !== aiMessageId) {
+                        return;
+                    }
 
+                    // 누적 텍스트 업데이트
+                    streamingStateRef.current.accumulatedText += chunk;
+                    const currentText = streamingStateRef.current.accumulatedText;
+
+                    // 메시지 상태 업데이트 - 깜빡임 최소화
                     setMessages(prevMessages => {
-                        console.log('🔄 메시지 상태 업데이트 시작...');
-                        const newMessages = prevMessages.map(msg => {
-                            if (msg.id === aiMessageId) {
-                                console.log('🎯 타겟 메시지 찾음, 업데이트!');
-                                return { ...msg, text: accumulated, isStreaming: true };
+                        return prevMessages.map(msg => {
+                            if (msg.id === aiMessageId && msg.isStreaming) {
+                                return {
+                                    ...msg,
+                                    text: currentText,
+                                    isStreaming: true
+                                };
                             }
                             return msg;
                         });
-                        console.log('✅ 메시지 상태 업데이트 완료');
-                        return newMessages;
                     });
                 },
                 // onComplete: 스트리밍 완료 시 호출
                 (finalMessage) => {
-                    console.log('🏁 스트리밍 완료:', finalMessage);
+                    console.log('🏁 스트리밍 완료');
+
+                    // 스트리밍 상태 비활성화
+                    streamingStateRef.current.isActive = false;
 
                     const completedAiMessage = {
                         id: aiMessageId,
                         sender: 'ai',
-                        text: finalMessage,
+                        text: finalMessage || streamingStateRef.current.accumulatedText,
                         time: timeString,
                         isStreaming: false
                     };
@@ -358,12 +379,18 @@ export function AppProvider({ children }) {
                 (error) => {
                     console.error('💥 스트리밍 에러:', error);
 
+                    // 스트리밍 상태 비활성화
+                    streamingStateRef.current.isActive = false;
+
                     // 스트리밍 실패 시 기존 방식으로 fallback
                     fallbackToRegularMessage(text, userMessage, aiMessageId, timeString);
                 }
             );
         } catch (err) {
             console.error('💥 스트리밍 초기화 에러:', err);
+
+            // 스트리밍 상태 비활성화
+            streamingStateRef.current.isActive = false;
 
             // 스트리밍 실패 시 기존 방식으로 fallback
             await fallbackToRegularMessage(text, userMessage, aiMessageId, timeString);
@@ -372,7 +399,7 @@ export function AppProvider({ children }) {
         }
     };
 
-    // 스트리밍 실패 시 기존 방식으로 fallback하는 함수
+    // 스트리밍 실패 시 기존 방식으로 fallback하는 함수 - 개선된 버전
     const fallbackToRegularMessage = async (text, userMessage, aiMessageId, timeString) => {
         try {
             console.log('스트리밍 실패, 기존 방식으로 전환...');
@@ -582,6 +609,11 @@ export function AppProvider({ children }) {
         // 스트리밍 관련 상태 초기화
         setIsStreaming(false);
         setStreamingMessageId(null);
+        streamingStateRef.current = {
+            isActive: false,
+            messageId: null,
+            accumulatedText: ''
+        };
 
         // 세션 스토리지 초기화
         clearSessionFromStorage();

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 
 /**
- * 메시지 페이지네이션을 지원하는 메시지 목록 컴포넌트 (스트리밍 지원)
+ * 메시지 페이지네이션을 지원하는 메시지 목록 컴포넌트 (스트리밍 개선)
  */
 const MessageList = () => {
     const {
@@ -20,7 +20,6 @@ const MessageList = () => {
     const listContainerRef = useRef(null);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
-    const [lastScrollPosition, setLastScrollPosition] = useState(0);
 
     // 스크롤 이벤트 핸들러 - 상단으로 스크롤 시 이전 메시지 로드
     const handleScroll = () => {
@@ -36,9 +35,6 @@ const MessageList = () => {
         // 스크롤 위치에 따라 자동 스크롤 활성화/비활성화
         const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 100;
         setAutoScrollEnabled(isScrolledToBottom);
-
-        // 현재 스크롤 위치 저장
-        setLastScrollPosition(scrollTop);
     };
 
     // 이전 메시지 로드 함수
@@ -75,15 +71,12 @@ const MessageList = () => {
         }
     }, [messages, autoScrollEnabled, isStreaming]);
 
-    // 스트리밍 메시지의 타이핑 효과 컴포넌트
+    // 스트리밍 메시지의 타이핑 효과 컴포넌트 - 개선된 버전
     const StreamingMessage = ({ message }) => {
-        const [displayedText, setDisplayedText] = useState('');
         const [showCursor, setShowCursor] = useState(true);
 
         useEffect(() => {
             if (message.isStreaming) {
-                setDisplayedText(message.text);
-
                 // 커서 깜빡임 효과
                 const cursorInterval = setInterval(() => {
                     setShowCursor(prev => !prev);
@@ -91,32 +84,33 @@ const MessageList = () => {
 
                 return () => clearInterval(cursorInterval);
             } else {
-                setDisplayedText(message.text);
+                // 스트리밍이 완료되면 커서 숨김
                 setShowCursor(false);
             }
-        }, [message.text, message.isStreaming]);
+        }, [message.isStreaming]);
 
         return (
             <div className="bg-gray-100 p-3 rounded-lg rounded-tl-none">
-                <p className="text-gray-800 whitespace-pre-wrap">
-                    {displayedText}
+                <div className="text-gray-800 whitespace-pre-wrap">
+                    <span>{message.text}</span>
                     {message.isStreaming && (
                         <span
-                            className={`inline-block w-2 h-5 bg-gray-600 ml-1 ${showCursor ? 'opacity-100' : 'opacity-0'}`}
-                            style={{ animation: 'blink 1s infinite' }}
+                            className={`inline-block w-[2px] h-5 bg-blue-500 ml-1 transition-opacity duration-300 ${
+                                showCursor ? 'opacity-100' : 'opacity-0'
+                            }`}
                         >
                             |
                         </span>
                     )}
-                </p>
+                </div>
                 {message.isStreaming && (
-                    <div className="mt-2 flex items-center text-xs text-gray-500">
+                    <div className="mt-2 flex items-center text-xs text-blue-500">
                         <div className="flex space-x-1 mr-2">
-                            <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
-                            <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
-                            <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                            <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                            <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                            <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
                         </div>
-                        <span>AI가 답변하고 있습니다...</span>
+                        <span>입력중...</span>
                     </div>
                 )}
             </div>
@@ -130,11 +124,26 @@ const MessageList = () => {
                     0%, 50% { opacity: 1; }
                     51%, 100% { opacity: 0; }
                 }
+
+                .message-bubble {
+                    animation: fadeInUp 0.3s ease-out;
+                }
+
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
             `}</style>
 
             <div
                 ref={listContainerRef}
-                className="flex-1 overflow-y-auto mb-4 max-h-[60vh] p-2"
+                className="flex-1 overflow-y-auto mb-4 max-h-[60vh] p-2 custom-scrollbar"
                 onScroll={handleScroll}
             >
                 {/* 이전 메시지 로드 버튼/인디케이터 */}
@@ -145,7 +154,7 @@ const MessageList = () => {
                         ) : (
                             <button
                                 onClick={loadOlderMessages}
-                                className="text-[#4285F4] text-sm hover:underline"
+                                className="text-[#4285F4] text-sm hover:underline px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors"
                             >
                                 이전 메시지 더 보기
                             </button>
@@ -156,15 +165,17 @@ const MessageList = () => {
                 {/* 메시지 목록 */}
                 {messages.length === 0 ? (
                     <div className="flex justify-center items-center h-32">
-                        <div className="text-gray-400">
-                            토론이 아직 시작되지 않았습니다.
+                        <div className="text-gray-400 text-center">
+                            <div className="mb-2">🗣️</div>
+                            <div>토론이 아직 시작되지 않았습니다.</div>
+                            <div className="text-sm">첫 번째 메시지를 보내보세요!</div>
                         </div>
                     </div>
                 ) : (
                     messages.map((message) => (
                         <div
                             key={message.id}
-                            className={`mb-4 flex ${
+                            className={`mb-4 flex message-bubble ${
                                 message.sender === 'user'
                                     ? 'justify-end'
                                     : message.sender === 'system'
@@ -175,7 +186,7 @@ const MessageList = () => {
                             {/* AI 메시지 - 좌측 정렬 */}
                             {message.sender === 'ai' && (
                                 <div className="flex items-start max-w-3/4">
-                                    <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">
+                                    <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0 text-sm font-medium">
                                         AI
                                     </div>
                                     <div className="flex flex-col">
@@ -200,7 +211,7 @@ const MessageList = () => {
                                         </div>
                                         <span className="message-time text-right mt-1">{message.time}</span>
                                     </div>
-                                    <div className="bg-gray-600 text-white rounded-full w-8 h-8 flex items-center justify-center ml-3 flex-shrink-0">
+                                    <div className="bg-gray-600 text-white rounded-full w-8 h-8 flex items-center justify-center ml-3 flex-shrink-0 text-sm font-medium">
                                         나
                                     </div>
                                 </div>
@@ -223,12 +234,12 @@ const MessageList = () => {
                 {isLoading && !isStreaming && (
                     <div className="mb-4 flex justify-start">
                         <div className="flex items-start max-w-3/4">
-                            <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">
+                            <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0 text-sm font-medium">
                                 AI
                             </div>
                             <div className="flex flex-col">
                                 <div className="bg-gray-100 p-3 rounded-lg rounded-tl-none">
-                                    <div className="flex items-center space-x-1">
+                                    <div className="flex items-center space-x-2">
                                         <span className="text-gray-600">입력중</span>
                                         <div className="flex space-x-1">
                                             <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
@@ -248,11 +259,12 @@ const MessageList = () => {
                 {/* 맨 아래로 스크롤 버튼 */}
                 {!autoScrollEnabled && messages.length > 5 && (
                     <button
-                        className="fixed bottom-24 right-8 bg-[#4285F4] text-white rounded-full p-3 shadow-lg hover:bg-[#3367d6] transition-colors z-10"
+                        className="fixed bottom-24 right-8 bg-[#4285F4] text-white rounded-full p-3 shadow-lg hover:bg-[#3367d6] transition-colors z-10 hover:shadow-xl"
                         onClick={() => {
                             messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
                             setAutoScrollEnabled(true);
                         }}
+                        title="맨 아래로 스크롤"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="6 9 12 15 18 9"></polyline>

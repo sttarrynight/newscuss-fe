@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="중복 함수 제거, 폴링 로직 단순화와 '토론 내용 다시보기' 기능 추가">
+    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="스트리밍 메시지 전송 기능 추가 및 관련 상태 관리 개선(1)">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/discussion/MessageList.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/discussion/MessageList.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/context/AppContext.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/context/AppContext.js" afterDir="false" />
@@ -186,7 +186,15 @@
       <option name="project" value="LOCAL" />
       <updated>1749432911287</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="스트리밍 메시지 전송 기능 추가 및 관련 상태 관리 개선(1)">
+      <option name="closed" value="true" />
+      <created>1749608799925</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1749608799925</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -213,6 +221,7 @@
     <MESSAGE value="discussion, summary 페이지 리팩토링: 요약문 먼저 생성 후 summary 페이지에 전달 방식" />
     <MESSAGE value="채팅 인터페이스 UI 개선" />
     <MESSAGE value="중복 함수 제거, 폴링 로직 단순화와 '토론 내용 다시보기' 기능 추가" />
-    <option name="LAST_COMMIT_MESSAGE" value="중복 함수 제거, 폴링 로직 단순화와 '토론 내용 다시보기' 기능 추가" />
+    <MESSAGE value="스트리밍 메시지 전송 기능 추가 및 관련 상태 관리 개선(1)" />
+    <option name="LAST_COMMIT_MESSAGE" value="스트리밍 메시지 전송 기능 추가 및 관련 상태 관리 개선(1)" />
   </component>
 </project>

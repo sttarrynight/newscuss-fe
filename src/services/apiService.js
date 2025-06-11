@@ -102,44 +102,38 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
 };
 
 /**
- * 스트리밍 메시지 전송 함수 (누적 관리 강화 버전)
+ * 최적화된 스트리밍 메시지 전송 함수 - 청크만 처리
  */
 const sendMessageStream = (sessionId, message, onChunk, onComplete, onError) => {
-    console.log('🚀 스트리밍 시작 (누적 관리 강화):', { sessionId, message });
+    console.log('🚀 스트리밍 시작:', sessionId);
 
     return new Promise((resolve, reject) => {
         let isCompleted = false;
-        let accumulatedMessage = ''; // 여기서 직접 관리
+        let accumulatedMessage = '';
+        let controller = new AbortController();
+        let buffer = '';
 
-        // 타임아웃 설정
         const timeoutId = setTimeout(() => {
             if (!isCompleted) {
                 isCompleted = true;
-                console.error('⏰ 스트리밍 타임아웃');
+                controller.abort();
                 const timeoutError = new Error('스트리밍 요청 시간이 초과되었습니다.');
-                logError(timeoutError, 'sendMessageStream.timeout');
                 if (onError) onError(timeoutError);
                 reject(timeoutError);
             }
         }, API_CONFIG.STREAM_TIMEOUT);
-
-        // fetch를 사용한 스트리밍
-        console.log('📡 fetch 요청 시작:', `${API_CONFIG.BASE_URL}/discussion/message/stream`);
 
         fetch(`${API_CONFIG.BASE_URL}/discussion/message/stream`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'text/event-stream',
+                'Cache-Control': 'no-cache',
             },
-            body: JSON.stringify({
-                sessionId: sessionId,
-                message: message
-            })
+            body: JSON.stringify({ sessionId, message }),
+            signal: controller.signal
         })
             .then(response => {
-                console.log('📥 응답 받음:', response.status, response.statusText);
-
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
@@ -151,89 +145,57 @@ const sendMessageStream = (sessionId, message, onChunk, onComplete, onError) => 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
 
-                function readStream() {
-                    return reader.read().then(({ done, value }) => {
-                        if (done || isCompleted) {
-                            console.log('✅ 스트림 완료 (done):', done, 'isCompleted:', isCompleted);
-                            if (!isCompleted) {
-                                isCompleted = true;
-                                clearTimeout(timeoutId);
-                                console.log('📝 최종 누적 메시지:', accumulatedMessage);
-                                if (onComplete) onComplete(accumulatedMessage);
-                                resolve(accumulatedMessage);
-                            }
-                            return;
-                        }
+                function processSSEData(data) {
+                    buffer += data;
 
-                        const chunk = decoder.decode(value, { stream: true });
-                        console.log('📦 청크 받음:', chunk);
+                    const events = buffer.split('\n\n');
+                    buffer = events.pop() || '';
 
-                        // 각 라인 처리
-                        const lines = chunk.split('\n');
+                    for (const event of events) {
+                        if (event.trim() === '') continue;
+
+                        const lines = event.split('\n');
+                        let eventData = '';
 
                         for (const line of lines) {
-                            if (line.trim() === '') continue;
-
-                            console.log('📄 라인 처리:', line);
-
-                            // JSON 데이터 추출 (data: 접두사 있든 없든)
-                            let jsonData = '';
-                            if (line.startsWith('data: ')) {
-                                jsonData = line.substring(6).trim();
-                            } else if (line.startsWith('{') && line.includes('"type"')) {
-                                jsonData = line.trim();
-                            } else if (line.startsWith('event:')) {
-                                console.log('📡 이벤트 라인 스킵:', line);
-                                continue;
-                            } else {
-                                console.log('❓ 알 수 없는 라인:', line);
-                                continue;
+                            if (line.startsWith('data:')) {
+                                eventData = line.substring(5).trim();
+                                break;
                             }
+                        }
 
-                            if (jsonData === '' || jsonData === '{}') {
-                                console.log('⚪ 빈 데이터, 스킵');
-                                continue;
-                            }
-
+                        if (eventData && eventData !== '{}') {
                             try {
-                                const data = JSON.parse(jsonData);
-                                console.log('✅ 파싱된 데이터:', data);
+                                const data = JSON.parse(eventData);
 
                                 if (data.type === 'chunk') {
-                                    console.log('🔤 청크 내용:', data.content);
-                                    // 여기서 직접 누적 관리
-                                    accumulatedMessage += data.content;
-                                    console.log('📝 현재 누적:', accumulatedMessage);
-                                    console.log('🎯 onChunk 콜백 호출 시도...', typeof onChunk);
+                                    const chunkContent = data.content || '';
+                                    accumulatedMessage += chunkContent;
 
-                                    if (onChunk) {
-                                        console.log('✅ onChunk 콜백 호출!');
-                                        onChunk(data.content, accumulatedMessage);
-                                        console.log('✅ onChunk 콜백 완료!');
-                                    } else {
-                                        console.error('❌ onChunk 콜백이 없습니다!');
+                                    // 간단한 로깅
+                                    console.log('📝', chunkContent);
+
+                                    if (onChunk && typeof onChunk === 'function') {
+                                        onChunk(chunkContent, accumulatedMessage);
                                     }
+
                                 } else if (data.type === 'end') {
-                                    console.log('🏁 종료 신호 받음');
+                                    console.log('🏁 스트리밍 완료');
                                     isCompleted = true;
                                     clearTimeout(timeoutId);
 
-                                    // final_message가 있으면 사용, 없으면 누적된 메시지 사용
-                                    const finalMessage = data.final_message || accumulatedMessage;
-                                    console.log('📝 최종 메시지:', finalMessage);
-
-                                    if (onComplete) {
-                                        onComplete(finalMessage);
+                                    if (onComplete && typeof onComplete === 'function') {
+                                        onComplete(accumulatedMessage);
                                     }
-                                    resolve(finalMessage);
+                                    resolve(accumulatedMessage);
                                     return;
+
                                 } else if (data.type === 'error') {
-                                    console.error('❌ 에러 신호 받음:', data);
+                                    console.error('❌ 스트리밍 에러:', data.message);
                                     isCompleted = true;
                                     clearTimeout(timeoutId);
 
                                     const error = new Error(data.message || '스트리밍 중 오류가 발생했습니다.');
-                                    logError(error, 'sendMessageStream.streamError');
                                     if (onError) onError(error);
                                     reject(error);
                                     return;
@@ -241,10 +203,31 @@ const sendMessageStream = (sessionId, message, onChunk, onComplete, onError) => 
                                     console.log('❓ 알 수 없는 타입:', data.type);
                                 }
                             } catch (parseError) {
-                                console.error('🚫 JSON 파싱 오류:', parseError, '원본:', jsonData);
+                                console.warn('🚫 JSON 파싱 오류 (무시):', parseError);
+                                // 파싱 에러는 무시하고 계속 진행
                             }
                         }
+                    }
+                }
 
+                function readStream() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done || isCompleted) {
+                            if (buffer.trim() && !isCompleted) {
+                                processSSEData('\n\n');
+                            }
+
+                            if (!isCompleted) {
+                                isCompleted = true;
+                                clearTimeout(timeoutId);
+                                if (onComplete) onComplete(accumulatedMessage);
+                                resolve(accumulatedMessage);
+                            }
+                            return;
+                        }
+
+                        const chunk = decoder.decode(value, { stream: true });
+                        processSSEData(chunk);
                         return readStream();
                     });
                 }
@@ -252,13 +235,15 @@ const sendMessageStream = (sessionId, message, onChunk, onComplete, onError) => 
                 return readStream();
             })
             .catch(error => {
-                console.error('💥 fetch 에러:', error);
                 if (!isCompleted) {
                     isCompleted = true;
                     clearTimeout(timeoutId);
 
+                    if (error.name === 'AbortError') {
+                        return;
+                    }
+
                     const streamError = new Error(`스트리밍 연결 오류: ${error.message}`);
-                    logError(streamError, 'sendMessageStream.connectionError');
                     if (onError) onError(streamError);
                     reject(streamError);
                 }
@@ -319,7 +304,7 @@ const apiService = {
     },
 
     /**
-     * 토론 메시지 전송 (스트리밍 방식) - 새로 추가
+     * 토론 메시지 전송 (스트리밍 방식) - 최종 수정 버전
      */
     sendMessageStream: sendMessageStream,
 
