@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
 import Header from '@/components/common/Header';
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
@@ -23,7 +24,6 @@ export default function Summary() {
         resetSession,
         getCachedSummary,
         summaryStatus,
-        summaryProgress,
         startBackgroundSummary,
         // 피드백 관련
         feedbackData,
@@ -130,7 +130,7 @@ export default function Summary() {
     // 피드백 모달 열기
     const handleShowFeedback = async () => {
         setShowFeedbackModal(true);
-        
+
         // 이미 피드백 데이터가 있으면 API 호출하지 않음
         if (!feedbackData) {
             try {
@@ -146,7 +146,7 @@ export default function Summary() {
         <div className="min-h-screen bg-[#E8F0FE] flex flex-col">
             <Header showNav={false} />
 
-            <main className="flex-1 p-4 md:p-8 flex flex-col items-center max-w-3xl mx-auto">
+            <main className="flex-1 p-4 md:p-8 flex flex-col items-center max-w-4xl mx-auto">
                 {/* Newscuss 로고 */}
                 <h1 className="text-center text-5xl font-bold mb-8 text-[#4285F4]">
                     <span className="text-[#0052CC]">N</span>ews<span className="text-[#0052CC]">c</span>uss
@@ -159,19 +159,6 @@ export default function Summary() {
                         <div className="flex flex-col justify-center items-center py-10">
                             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#4285F4] mb-4"></div>
                             <p className="text-gray-600 text-center">토론 내용을 요약하고 있습니다...</p>
-
-                            {summaryStatus === 'SUMMARIZING' && summaryProgress > 0 && (
-                                <div className="w-full max-w-md mt-4">
-                                    <div className="bg-gray-200 rounded-full h-2">
-                                        <div
-                                            className="bg-[#4285F4] h-2 rounded-full transition-all duration-300"
-                                            style={{ width: `${summaryProgress}%` }}
-                                        ></div>
-                                    </div>
-                                    <p className="text-sm text-gray-500 mt-2 text-center">{summaryProgress}% 완료</p>
-                                </div>
-                            )}
-
                             <p className="text-sm text-gray-500 mt-2">
                                 토론 내용이 길수록 더 오래 걸릴 수 있습니다.
                             </p>
@@ -223,11 +210,28 @@ export default function Summary() {
                                     </div>
                                 )}
 
-                                <h3 className="font-bold text-lg mb-2">토론 요약:</h3>
+                                <h3 className="font-bold text-lg mb-3">토론 요약:</h3>
                                 {discussionSummary ? (
-                                    <p className="text-gray-700 whitespace-pre-line">
-                                        {discussionSummary}
-                                    </p>
+                                    <div className="text-gray-700 leading-relaxed prose prose-gray max-w-none">
+                                        <ReactMarkdown
+                                            components={{
+                                                // 커스텀 스타일링
+                                                h1: ({children}) => <h1 className="text-xl font-bold text-gray-800 mt-4 mb-3">{children}</h1>,
+                                                h2: ({children}) => <h2 className="text-lg font-semibold text-gray-800 mt-4 mb-2">{children}</h2>,
+                                                h3: ({children}) => <h3 className="text-base font-medium text-gray-800 mt-3 mb-2">{children}</h3>,
+                                                p: ({children}) => <p className="text-gray-700 mb-3 leading-relaxed">{children}</p>,
+                                                strong: ({children}) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                                                em: ({children}) => <em className="italic text-gray-800">{children}</em>,
+                                                ul: ({children}) => <ul className="list-disc list-inside mb-3 text-gray-700 space-y-1">{children}</ul>,
+                                                ol: ({children}) => <ol className="list-decimal list-inside mb-3 text-gray-700 space-y-1">{children}</ol>,
+                                                li: ({children}) => <li className="ml-2">{children}</li>,
+                                                code: ({children}) => <code className="bg-gray-200 px-2 py-1 rounded text-sm font-mono text-gray-800">{children}</code>,
+                                                blockquote: ({children}) => <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-3">{children}</blockquote>
+                                            }}
+                                        >
+                                            {discussionSummary}
+                                        </ReactMarkdown>
+                                    </div>
                                 ) : (
                                     <div className="text-center py-4">
                                         <p className="text-gray-500">토론 요약을 가져오는데 문제가 발생했습니다.</p>

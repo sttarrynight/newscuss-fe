@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 
 /**
- * 메시지 페이지네이션을 지원하는 메시지 목록 컴포넌트 (스트리밍 시각적 피드백 개선)
+ * 메시지 페이지네이션을 지원하는 메시지 목록 컴포넌트 (스트리밍 시각적 피드백 개선 + 간단한 마크다운 처리)
  */
 const MessageList = () => {
     const {
@@ -20,6 +20,24 @@ const MessageList = () => {
     const listContainerRef = useRef(null);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+
+    // 간단한 마크다운 처리 함수 (채팅용)
+    const processSimpleMarkdown = (text) => {
+        if (!text || typeof text !== 'string') return text;
+
+        let processed = text;
+
+        // 1. 굵은 글씨만 처리 (**text** => <strong>)
+        processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>');
+
+        // 2. 기울임 처리 (*text* => <em>)
+        processed = processed.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em class="italic">$1</em>');
+
+        // 3. 간단한 코드 처리 (`code` => <code>)
+        processed = processed.replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">$1</code>');
+
+        return processed;
+    };
 
     // 스크롤 이벤트 핸들러 - 상단으로 스크롤 시 이전 메시지 로드
     const handleScroll = () => {
@@ -102,7 +120,12 @@ const MessageList = () => {
         return (
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg rounded-tl-none border border-blue-100 shadow-sm">
                 <div className="text-gray-800 whitespace-pre-wrap leading-relaxed">
-                    <span className="inline-block">{message.text}</span>
+                    <span
+                        className="inline-block"
+                        dangerouslySetInnerHTML={{
+                            __html: processSimpleMarkdown(message.text)
+                        }}
+                    />
                     {message.isStreaming && (
                         <span className="inline-flex items-center ml-1">
                             <span
@@ -302,7 +325,12 @@ const MessageList = () => {
                                                 <StreamingMessage message={message} />
                                             ) : (
                                                 <div className="bg-gray-50 p-4 rounded-lg rounded-tl-none border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                                                    <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{message.text}</p>
+                                                    <div
+                                                        className="text-gray-800 whitespace-pre-wrap leading-relaxed"
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: processSimpleMarkdown(message.text)
+                                                        }}
+                                                    />
                                                 </div>
                                             )}
                                         </div>
@@ -318,7 +346,12 @@ const MessageList = () => {
                                 <div className="flex items-start max-w-4/5">
                                     <div className="flex flex-col min-w-0">
                                         <div className="bg-gradient-to-r from-[#4285F4] to-[#3367d6] text-white p-4 rounded-lg rounded-tr-none shadow-md hover:shadow-lg transition-shadow duration-200">
-                                            <p className="whitespace-pre-wrap text-left leading-relaxed">{message.text}</p>
+                                            <div
+                                                className="whitespace-pre-wrap text-left leading-relaxed"
+                                                dangerouslySetInnerHTML={{
+                                                    __html: processSimpleMarkdown(message.text)
+                                                }}
+                                            />
                                         </div>
                                         <span className="message-time text-right mt-2 text-xs text-gray-500 mr-1">
                                             👤 {message.time}
