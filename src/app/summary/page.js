@@ -32,6 +32,11 @@ export default function Summary() {
         getFeedback
     } = useAppContext();
 
+    // 입장별 색상 결정 함수 (discussion 페이지와 동일)
+    const getPositionColor = (position) => {
+        return position === '찬성' ? 'text-blue-500' : 'text-red-500';
+    };
+
     // 세션이 없으면 홈으로 리다이렉트
     useEffect(() => {
         if (!sessionId) {
@@ -204,8 +209,8 @@ export default function Summary() {
                                     <div className="mb-4">
                                         <h3 className="font-bold text-lg mb-2">토론 입장:</h3>
                                         <p className="text-gray-700">
-                                            사용자: <span className="font-medium text-blue-600">{userPosition}</span> /
-                                            AI: <span className="font-medium text-red-600">{aiPosition}</span>
+                                            사용자: <span className={`font-medium ${getPositionColor(userPosition)}`}>{userPosition}</span> /
+                                            AI: <span className={`font-medium ${getPositionColor(aiPosition)}`}>{aiPosition}</span>
                                         </p>
                                     </div>
                                 )}
