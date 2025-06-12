@@ -1,8 +1,8 @@
 import { logError, normalizeError, isNetworkError } from '@/utils/errorUtils';
 
 /**
-* API 서비스 설정
-*/
+ * API 서비스 설정
+ */
 const API_CONFIG = {
     // 기본 URL (환경 변수에서 가져오거나 기본값 사용)
     BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api',
@@ -10,6 +10,7 @@ const API_CONFIG = {
     // 타임아웃 설정 (밀리초)
     TIMEOUT: 30000,
     SUMMARY_TIMEOUT: 60000, // 요약 요청은 더 긴 타임아웃 적용
+    STREAM_TIMEOUT: 120000, // 스트리밍은 더 긴 타임아웃 적용
 
     // 재시도 설정
     RETRY: {
@@ -101,6 +102,156 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
 };
 
 /**
+ * 최적화된 스트리밍 메시지 전송 함수 - 청크만 처리
+ */
+const sendMessageStream = (sessionId, message, onChunk, onComplete, onError) => {
+    console.log('🚀 스트리밍 시작:', sessionId);
+
+    return new Promise((resolve, reject) => {
+        let isCompleted = false;
+        let accumulatedMessage = '';
+        let controller = new AbortController();
+        let buffer = '';
+
+        const timeoutId = setTimeout(() => {
+            if (!isCompleted) {
+                isCompleted = true;
+                controller.abort();
+                const timeoutError = new Error('스트리밍 요청 시간이 초과되었습니다.');
+                if (onError) onError(timeoutError);
+                reject(timeoutError);
+            }
+        }, API_CONFIG.STREAM_TIMEOUT);
+
+        fetch(`${API_CONFIG.BASE_URL}/discussion/message/stream`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+            },
+            body: JSON.stringify({ sessionId, message }),
+            signal: controller.signal
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                if (!response.body) {
+                    throw new Error('응답 본문이 없습니다.');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                function processSSEData(data) {
+                    buffer += data;
+
+                    const events = buffer.split('\n\n');
+                    buffer = events.pop() || '';
+
+                    for (const event of events) {
+                        if (event.trim() === '') continue;
+
+                        const lines = event.split('\n');
+                        let eventData = '';
+
+                        for (const line of lines) {
+                            if (line.startsWith('data:')) {
+                                eventData = line.substring(5).trim();
+                                break;
+                            }
+                        }
+
+                        if (eventData && eventData !== '{}') {
+                            try {
+                                const data = JSON.parse(eventData);
+
+                                if (data.type === 'chunk') {
+                                    const chunkContent = data.content || '';
+                                    accumulatedMessage += chunkContent;
+
+                                    // 간단한 로깅
+                                    console.log('📝', chunkContent);
+
+                                    if (onChunk && typeof onChunk === 'function') {
+                                        onChunk(chunkContent, accumulatedMessage);
+                                    }
+
+                                } else if (data.type === 'end') {
+                                    console.log('🏁 스트리밍 완료');
+                                    isCompleted = true;
+                                    clearTimeout(timeoutId);
+
+                                    if (onComplete && typeof onComplete === 'function') {
+                                        onComplete(accumulatedMessage);
+                                    }
+                                    resolve(accumulatedMessage);
+                                    return;
+
+                                } else if (data.type === 'error') {
+                                    console.error('❌ 스트리밍 에러:', data.message);
+                                    isCompleted = true;
+                                    clearTimeout(timeoutId);
+
+                                    const error = new Error(data.message || '스트리밍 중 오류가 발생했습니다.');
+                                    if (onError) onError(error);
+                                    reject(error);
+                                    return;
+                                } else {
+                                    console.log('❓ 알 수 없는 타입:', data.type);
+                                }
+                            } catch (parseError) {
+                                console.warn('🚫 JSON 파싱 오류 (무시):', parseError);
+                                // 파싱 에러는 무시하고 계속 진행
+                            }
+                        }
+                    }
+                }
+
+                function readStream() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done || isCompleted) {
+                            if (buffer.trim() && !isCompleted) {
+                                processSSEData('\n\n');
+                            }
+
+                            if (!isCompleted) {
+                                isCompleted = true;
+                                clearTimeout(timeoutId);
+                                if (onComplete) onComplete(accumulatedMessage);
+                                resolve(accumulatedMessage);
+                            }
+                            return;
+                        }
+
+                        const chunk = decoder.decode(value, { stream: true });
+                        processSSEData(chunk);
+                        return readStream();
+                    });
+                }
+
+                return readStream();
+            })
+            .catch(error => {
+                if (!isCompleted) {
+                    isCompleted = true;
+                    clearTimeout(timeoutId);
+
+                    if (error.name === 'AbortError') {
+                        return;
+                    }
+
+                    const streamError = new Error(`스트리밍 연결 오류: ${error.message}`);
+                    if (onError) onError(streamError);
+                    reject(streamError);
+                }
+            });
+    });
+};
+
+/**
  * API 서비스 객체 - 애플리케이션에서 사용할 API 함수들을 포함
  */
 const apiService = {
@@ -140,7 +291,7 @@ const apiService = {
     },
 
     /**
-     * 토론 메시지 전송
+     * 토론 메시지 전송 (기존 방식 - 백업용)
      */
     sendMessage: async (sessionId, message) => {
         return apiRequest('/discussion/message', {
@@ -151,6 +302,11 @@ const apiService = {
             }),
         });
     },
+
+    /**
+     * 토론 메시지 전송 (스트리밍 방식) - 최종 수정 버전
+     */
+    sendMessageStream: sendMessageStream,
 
     /**
      * 토론 요약 요청

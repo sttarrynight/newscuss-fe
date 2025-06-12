@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import apiService from '@/services/apiService';
 import {
     saveSessionToStorage,
@@ -37,11 +37,24 @@ export function AppProvider({ children }) {
     const [summaryStatus, setSummaryStatus] = useState('PENDING'); // 'PENDING' | 'SUMMARIZING' | 'COMPLETED' | 'FAILED'
     const [summaryProgress, setSummaryProgress] = useState(0); // 0-100
     const [cachedSummary, setCachedSummary] = useState(''); // 캐시된 요약
-    
+
     // 피드백 관련 상태 추가
     const [feedbackData, setFeedbackData] = useState(null);
     const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
     const [feedbackError, setFeedbackError] = useState(null);
+
+    // 스트리밍 관련 상태 개선
+    const [isStreaming, setIsStreaming] = useState(false);
+    const [streamingMessageId, setStreamingMessageId] = useState(null);
+    const [, forceUpdate] = useState({});
+    const forceUpdateRef = useRef(() => forceUpdate({}));
+
+    // 스트리밍 상태 관리를 위한 ref
+    const streamingStateRef = useRef({
+        isActive: false,
+        messageId: null,
+        accumulatedText: ''
+    });
 
     // 세션 복원 (컴포넌트 마운트 시)
     useEffect(() => {
@@ -248,7 +261,7 @@ export function AppProvider({ children }) {
         }
     };
 
-    // 메시지 전송
+    // 메시지 전송 (스트리밍 방식 개선)
     const sendMessage = async (text) => {
         if (!sessionId) {
             const error = new Error('세션이 유효하지 않습니다.');
@@ -271,48 +284,170 @@ export function AppProvider({ children }) {
             time: timeString
         };
 
-        // 메시지 목록 업데이트
-        const updatedMessages = [...messages, userMessage];
-        setMessages(updatedMessages);
+        // 스트리밍 AI 메시지 placeholder 추가
+        const aiMessageId = Date.now() + 1;
+        const streamingAiMessage = {
+            id: aiMessageId,
+            sender: 'ai',
+            text: '',
+            time: timeString,
+            isStreaming: true
+        };
 
-        // 세션 스토리지 메시지 업데이트
+        // 메시지 목록 업데이트
+        const updatedMessages = [...messages, userMessage, streamingAiMessage];
+        setMessages(updatedMessages);
+        setStreamingMessageId(aiMessageId);
+        setIsStreaming(true);
+
+        // 스트리밍 상태 초기화
+        streamingStateRef.current = {
+            isActive: true,
+            messageId: aiMessageId,
+            accumulatedText: ''
+        };
+
+        // 세션 스토리지 메시지 업데이트 (스트리밍 메시지 제외)
         updateSessionInStorage({
-            messages: updatedMessages
+            messages: [...messages, userMessage]
         });
 
         try {
+            console.log('🚀 최적화된 스트리밍 시작');
+
+            await apiService.sendMessageStream(
+                sessionId,
+                text,
+                // onChunk: 청크만 받아서 누적 처리
+                (chunk) => {
+                    // 스트리밍 상태가 여전히 활성화되어 있는지 확인
+                    if (!streamingStateRef.current.isActive || streamingStateRef.current.messageId !== aiMessageId) {
+                        return;
+                    }
+
+                    // 누적 텍스트 업데이트
+                    streamingStateRef.current.accumulatedText += chunk;
+                    const currentText = streamingStateRef.current.accumulatedText;
+
+                    // 메시지 상태 업데이트 - 깜빡임 최소화
+                    setMessages(prevMessages => {
+                        return prevMessages.map(msg => {
+                            if (msg.id === aiMessageId && msg.isStreaming) {
+                                return {
+                                    ...msg,
+                                    text: currentText,
+                                    isStreaming: true
+                                };
+                            }
+                            return msg;
+                        });
+                    });
+                },
+                // onComplete: 스트리밍 완료 시 호출
+                (finalMessage) => {
+                    console.log('🏁 스트리밍 완료');
+
+                    // 스트리밍 상태 비활성화
+                    streamingStateRef.current.isActive = false;
+
+                    const completedAiMessage = {
+                        id: aiMessageId,
+                        sender: 'ai',
+                        text: finalMessage || streamingStateRef.current.accumulatedText,
+                        time: timeString,
+                        isStreaming: false
+                    };
+
+                    setMessages(prevMessages =>
+                        prevMessages.map(msg =>
+                            msg.id === aiMessageId
+                                ? completedAiMessage
+                                : msg
+                        )
+                    );
+
+                    // 최종 메시지로 세션 스토리지 업데이트
+                    const finalMessages = [...messages, userMessage, completedAiMessage];
+                    updateSessionInStorage({
+                        messages: finalMessages
+                    });
+
+                    setIsStreaming(false);
+                    setStreamingMessageId(null);
+                },
+                // onError: 에러 발생 시 호출
+                (error) => {
+                    console.error('💥 스트리밍 에러:', error);
+
+                    // 스트리밍 상태 비활성화
+                    streamingStateRef.current.isActive = false;
+
+                    // 스트리밍 실패 시 기존 방식으로 fallback
+                    fallbackToRegularMessage(text, userMessage, aiMessageId, timeString);
+                }
+            );
+        } catch (err) {
+            console.error('💥 스트리밍 초기화 에러:', err);
+
+            // 스트리밍 상태 비활성화
+            streamingStateRef.current.isActive = false;
+
+            // 스트리밍 실패 시 기존 방식으로 fallback
+            await fallbackToRegularMessage(text, userMessage, aiMessageId, timeString);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // 스트리밍 실패 시 기존 방식으로 fallback하는 함수 - 개선된 버전
+    const fallbackToRegularMessage = async (text, userMessage, aiMessageId, timeString) => {
+        try {
+            console.log('스트리밍 실패, 기존 방식으로 전환...');
+
             const response = await apiService.sendMessage(sessionId, text);
 
-            // AI 응답 메시지 추가
             const aiMessage = {
-                id: Date.now() + 1,
+                id: aiMessageId,
                 sender: 'ai',
                 text: response.aiMessage,
-                time: timeString
+                time: timeString,
+                isStreaming: false
             };
 
-            // 최종 메시지 목록 업데이트
-            const finalMessages = [...updatedMessages, aiMessage];
-            setMessages(finalMessages);
+            setMessages(prevMessages =>
+                prevMessages.map(msg =>
+                    msg.id === aiMessageId
+                        ? aiMessage
+                        : msg
+                )
+            );
 
-            // 세션 스토리지 메시지 업데이트
+            // 세션 스토리지 업데이트
+            const finalMessages = [...messages, userMessage, aiMessage];
             updateSessionInStorage({
                 messages: finalMessages
             });
 
-            return response;
-        } catch (err) {
-            const normalizedError = normalizeError(err);
+            setIsStreaming(false);
+            setStreamingMessageId(null);
+        } catch (fallbackError) {
+            const normalizedError = normalizeError(fallbackError);
             setError(normalizedError.message);
 
-            if (isSessionExpiredError(err)) {
+            // 실패한 AI 메시지 제거
+            setMessages(prevMessages =>
+                prevMessages.filter(msg => msg.id !== aiMessageId)
+            );
+
+            setIsStreaming(false);
+            setStreamingMessageId(null);
+
+            if (isSessionExpiredError(fallbackError)) {
                 resetSession();
             }
 
-            logError(err, 'AppContext.sendMessage');
+            logError(fallbackError, 'AppContext.fallbackToRegularMessage');
             throw normalizedError;
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -425,7 +560,7 @@ export function AppProvider({ children }) {
 
         try {
             const response = await apiService.getFeedback(sessionId);
-            
+
             // 피드백 데이터 검증
             if (!response.feedback) {
                 throw new Error('피드백 데이터를 받지 못했습니다.');
@@ -465,11 +600,20 @@ export function AppProvider({ children }) {
         setSummaryStatus('PENDING');
         setSummaryProgress(0);
         setCachedSummary('');
-        
+
         // 피드백 관련 상태 초기화
         setFeedbackData(null);
         setIsFeedbackLoading(false);
         setFeedbackError(null);
+
+        // 스트리밍 관련 상태 초기화
+        setIsStreaming(false);
+        setStreamingMessageId(null);
+        streamingStateRef.current = {
+            isActive: false,
+            messageId: null,
+            accumulatedText: ''
+        };
 
         // 세션 스토리지 초기화
         clearSessionFromStorage();
@@ -496,6 +640,8 @@ export function AppProvider({ children }) {
         feedbackData,
         isFeedbackLoading,
         feedbackError,
+        isStreaming,
+        streamingMessageId,
 
         // 액션 함수
         submitUrl,

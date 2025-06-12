@@ -35,9 +35,13 @@ export default function Discussion() {
         setError,
         resetSession,
         startBackgroundSummary,
-        summaryStatus,
-        summaryProgress
+        summaryStatus
     } = useAppContext();
+
+    // 입장별 색상 결정 함수
+    const getPositionColor = (position) => {
+        return position === '찬성' ? 'text-blue-500' : 'text-red-500';
+    };
 
     // 세션이 없으면 홈으로 리다이렉트
     useEffect(() => {
@@ -188,7 +192,7 @@ export default function Discussion() {
         </div>
     );
 
-    // 토론 정보 컴포넌트
+    // 토론 정보 컴포넌트 (색상 개선)
     const DiscussionInfo = () => (
         <Card className="mb-6">
             <h2 className="font-bold mb-2">토론 주제</h2>
@@ -210,11 +214,15 @@ export default function Discussion() {
 
             <div className="flex justify-between bg-gray-100 p-3 rounded-lg">
                 <div>
-                    <span className="font-bold text-blue-500 block">{userPosition}</span>
+                    <span className={`font-bold block ${getPositionColor(userPosition)}`}>
+                        {userPosition}
+                    </span>
                     <span className="text-sm">사용자</span>
                 </div>
                 <div className="text-right">
-                    <span className="font-bold text-red-500 block">{aiPosition}</span>
+                    <span className={`font-bold block ${getPositionColor(aiPosition)}`}>
+                        {aiPosition}
+                    </span>
                     <span className="text-sm">AI</span>
                 </div>
             </div>
@@ -239,7 +247,7 @@ export default function Discussion() {
                     isReadOnly
                         ? "요약으로 돌아가기"
                         : summaryStatus === 'SUMMARIZING'
-                            ? `요약 중... ${summaryProgress}%`
+                            ? '요약 중...'
                             : summaryStatus === 'COMPLETED'
                                 ? '요약 완료 - 확인하기'
                                 : '끝내기'
@@ -323,34 +331,17 @@ export default function Discussion() {
             {/* 토론 종료 확인 모달 (readonly 모드가 아닐 때만) */}
             {!isReadOnly && showEndConfirm && <EndConfirmModal />}
 
-            {/* 요약 중 로딩 화면 */}
+            {/* 요약 중 로딩 화면 (배경 오버레이 제거) */}
             {showSummaryLoading && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    {/* 투명한 배경 오버레이 */}
-                    <div className="absolute inset-0"></div>
-
-                    {/* 모달 컨텐츠 */}
-                    <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+                    {/* 모달 컨텐츠만 표시 (배경 오버레이 없음) */}
+                    <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-200 pointer-events-auto">
                         <div className="text-center">
                             <div className="mb-6">
                                 <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#4285F4] mx-auto mb-4"></div>
                             </div>
                             <h3 className="text-xl font-bold text-gray-900 mb-3">토론 요약 생성 중</h3>
-                            <p className="text-gray-600 mb-4 text-sm">토론 내용을 분석하고 요약하고 있습니다...</p>
-
-                            {/* 진행률 표시 */}
-                            {summaryProgress > 0 && (
-                                <div className="mb-4">
-                                    <div className="bg-gray-200 rounded-full h-2 mb-2">
-                                        <div
-                                            className="bg-gradient-to-r from-[#4285F4] to-[#3367d6] h-2 rounded-full transition-all duration-300"
-                                            style={{ width: `${summaryProgress}%` }}
-                                        ></div>
-                                    </div>
-                                    <p className="text-sm font-bold text-[#4285F4]">{summaryProgress}% 완료</p>
-                                </div>
-                            )}
-
+                            <p className="text-gray-600 mb-4 text-sm">AI가 토론 내용을 분석하고 요약하고 있습니다...</p>
                             <p className="text-xs text-gray-500">
                                 토론 내용이 길수록 더 오래 걸릴 수 있습니다.
                             </p>

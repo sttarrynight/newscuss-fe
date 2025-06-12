@@ -4,13 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="중복 함수 제거, 폴링 로직 단순화와 '토론 내용 다시보기' 기능 추가">
+    <list default="true" id="19079fe7-0357-4a4b-a961-0ab2a9a1b037" name="Changes" comment="토론 피드백 모달 추가 및 토론 채팅 및 요약 UI/UX 개선">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/discussion/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/discussion/page.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/summary/page.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/summary/page.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/discussion/MessageList.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/discussion/MessageList.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/context/AppContext.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/context/AppContext.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/services/apiService.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/apiService.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,25 +43,25 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "com.codeium.enabled": "true",
-    "git-widget-placeholder": "dev",
-    "kotlin-language-version-configured": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_interpreter_path": "/Users/kimyoungbeen/Library/Application Support/JetBrains/IntelliJIdea2024.3/node/versions/23.11.0/bin/node",
-    "nodejs_package_manager_path": "npm",
-    "npm.dev.executor": "Run",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "ts.external.directory.path": "/Applications/IntelliJ IDEA.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;com.codeium.enabled&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;dev&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_interpreter_path&quot;: &quot;/Users/kimyoungbeen/Library/Application Support/JetBrains/IntelliJIdea2024.3/node/versions/23.11.0/bin/node&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;npm.dev.executor&quot;: &quot;Run&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Applications/IntelliJ IDEA.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="dev" type="js.build_tools.npm">
       <package-json value="$PROJECT_DIR$/package.json" />
@@ -188,7 +184,39 @@
       <option name="project" value="LOCAL" />
       <updated>1749432911287</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="스트리밍 메시지 전송 기능 추가 및 관련 상태 관리 개선(1)">
+      <option name="closed" value="true" />
+      <created>1749608799925</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1749608799925</updated>
+    </task>
+    <task id="LOCAL-00011" summary="메시지 목록 컴포넌트 개선: 스트리밍 시각적 피드백 및 UI/UX 향상">
+      <option name="closed" value="true" />
+      <created>1749630591995</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1749630591995</updated>
+    </task>
+    <task id="LOCAL-00012" summary="메시지 목록 컴포넌트 개선: 간단한 마크다운 처리 기능 추가 및 UI/UX 향상">
+      <option name="closed" value="true" />
+      <created>1749632107101</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1749632107101</updated>
+    </task>
+    <task id="LOCAL-00013" summary="토론 피드백 모달 추가 및 토론 채팅 및 요약 UI/UX 개선">
+      <option name="closed" value="true" />
+      <created>1749632130429</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1749632130429</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -215,6 +243,10 @@
     <MESSAGE value="discussion, summary 페이지 리팩토링: 요약문 먼저 생성 후 summary 페이지에 전달 방식" />
     <MESSAGE value="채팅 인터페이스 UI 개선" />
     <MESSAGE value="중복 함수 제거, 폴링 로직 단순화와 '토론 내용 다시보기' 기능 추가" />
-    <option name="LAST_COMMIT_MESSAGE" value="중복 함수 제거, 폴링 로직 단순화와 '토론 내용 다시보기' 기능 추가" />
+    <MESSAGE value="스트리밍 메시지 전송 기능 추가 및 관련 상태 관리 개선(1)" />
+    <MESSAGE value="메시지 목록 컴포넌트 개선: 스트리밍 시각적 피드백 및 UI/UX 향상" />
+    <MESSAGE value="메시지 목록 컴포넌트 개선: 간단한 마크다운 처리 기능 추가 및 UI/UX 향상" />
+    <MESSAGE value="토론 피드백 모달 추가 및 토론 채팅 및 요약 UI/UX 개선" />
+    <option name="LAST_COMMIT_MESSAGE" value="토론 피드백 모달 추가 및 토론 채팅 및 요약 UI/UX 개선" />
   </component>
 </project>
